@@ -37,10 +37,16 @@ export function ReviewerConsole() {
         const tmpl = await getRubricTemplate(t.rubricTemplateId);
         setRubricTemplate(tmpl);
 
-        // Restore draft or start fresh
+        // Restore draft or start fresh.
+        // Always override OER metadata from the live task — oerType/oerSource
+        // are properties of the resource, not the reviewer's saved work.
         const saved = loadSession(taskId);
         if (saved) {
-          initSession(saved);
+          initSession({
+            ...saved,
+            oerType:  t.oer.oerType,
+            oerSource: t.oer.oerSource,
+          });
         } else {
           resetSession({
             taskId,
@@ -62,7 +68,7 @@ export function ReviewerConsole() {
       }
     }
     init();
-  }, [taskId]);
+  }, [taskId, navigate, initSession, resetSession]);
 
   // Auto-save on every store mutation
   useAutoSave();

@@ -1,6 +1,4 @@
 // ─── Domain types ────────────────────────────────────────────────────────────
-// These types are shared across the entire application.
-// When a real backend is added, only src/api/mock/ changes; these types stay.
 
 export type UserRole = "author" | "reviewer" | "coordinator";
 
@@ -26,11 +24,10 @@ export type RubricTemplateId =
   | "elearning"
   | "udl";
 
-export type OerType = "url" | "pdf";
+export type OerType = "url" | "pdf" | "mock";
 
+/** @deprecated Legacy single-select rubric */
 export type RatingValue = "needs_improvement" | "proficient" | "exceeds";
-
-// ─── OER resource ────────────────────────────────────────────────────────────
 
 export interface IOer {
   id: string;
@@ -39,16 +36,14 @@ export interface IOer {
   author: string;
   authorId: string;
   oerType: OerType;
-  oerSource: string;        // URL string or filename for PDF
+  oerSource: string;
   license: CCLicense;
   rubrics: RubricTemplateId[];
   status: OerStatus;
-  submittedAt: string;      // ISO date string
+  submittedAt: string;
   updatedAt: string;
   thirdPartyContent?: string;
 }
-
-// ─── Review task ─────────────────────────────────────────────────────────────
 
 export interface ITask {
   id: string;
@@ -62,20 +57,15 @@ export interface ITask {
   submittedAt?: string;
 }
 
-// ─── Annotation ──────────────────────────────────────────────────────────────
-
 export interface AnnotationAnchor {
   type: "pdf" | "web";
   selectedText: string;
-  // PDF
   page?: number;
   charStart?: number;
   charEnd?: number;
-  // Web overlay
   xpath?: string;
   startOffset?: number;
   endOffset?: number;
-  // Bounding boxes for highlight rendering (relative to OER pane container)
   rects: { top: number; left: number; width: number; height: number }[];
 }
 
@@ -88,15 +78,13 @@ export interface IAnnotation {
   createdAt: string;
 }
 
-// ─── Criterion rating ─────────────────────────────────────────────────────────
-
 export interface ICriterionRating {
-  rating: RatingValue | null;
+  needsImprovementActive: boolean;
+  exceedsActive: boolean;
+  proficientConfirmed: boolean;
   needsImprovementText: string;
   exceedsText: string;
 }
-
-// ─── Full review session ──────────────────────────────────────────────────────
 
 export interface IReviewSession {
   taskId: string;
@@ -112,12 +100,10 @@ export interface IReviewSession {
   status: "draft" | "submitted";
 }
 
-// ─── Rubric template ──────────────────────────────────────────────────────────
-
 export interface IRubricCriterion {
   id: string;
   title: string;
-  standard: string;       // Center column: "Proficient Standard" description
+  standard: string;
   needsImprovementPrompt: string;
   exceedsPrompt: string;
 }

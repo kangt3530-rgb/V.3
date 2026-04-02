@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
-import { layout } from "../../design/tokens";
 import { useReviewStore } from "../../store/reviewStore";
 
 interface ResizableSplitPaneProps {
@@ -132,5 +131,3 @@ function LayoutPresets({
     </div>
   );
 }
-
-export { layout };

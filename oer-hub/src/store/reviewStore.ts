@@ -1,16 +1,29 @@
 import { create } from "zustand";
+import { saveSession } from "../api";
 import { layout } from "../design/tokens";
 import type {
   IAnnotation,
   ICriterionRating,
   IReviewSession,
   OerType,
-  RatingValue,
   RubricTemplateId,
 } from "../api/types";
 
+function defaultCriterionRating(): ICriterionRating {
+  return {
+    needsImprovementActive: false,
+    exceedsActive: false,
+    proficientConfirmed: false,
+    needsImprovementText: "",
+    exceedsText: "",
+  };
+}
+
+function mergeRating(partial?: Partial<ICriterionRating>): ICriterionRating {
+  return { ...defaultCriterionRating(), ...partial };
+}
+
 interface ReviewState extends IReviewSession {
-  // ── Setters ────────────────────────────────────────────────────────────────
   initSession: (session: IReviewSession) => void;
   resetSession: (params: {
     taskId: string;
@@ -20,27 +33,26 @@ interface ReviewState extends IReviewSession {
     rubricTemplateId: RubricTemplateId;
   }) => void;
 
-  // Annotations
   addAnnotation: (annotation: IAnnotation) => void;
   removeAnnotation: (annotationId: string) => void;
   getAnnotationsForCriterion: (criterionId: string) => IAnnotation[];
 
-  // Ratings
-  setRating: (criterionId: string, rating: RatingValue) => void;
+  toggleNeedsImprovementActive: (criterionId: string) => void;
+  toggleExceedsActive: (criterionId: string) => void;
+  toggleProficientConfirmed: (criterionId: string) => void;
   setNeedsImprovementText: (criterionId: string, text: string) => void;
   setExceedsText: (criterionId: string, text: string) => void;
-  getRating: (criterionId: string) => ICriterionRating | undefined;
+  getCriterionRating: (criterionId: string) => ICriterionRating;
 
-  // Layout
   setSplitRatio: (ratio: number) => void;
   setOerScrollY: (y: number) => void;
 
-  // Status
   setStatus: (status: IReviewSession["status"]) => void;
   setLastSaved: (iso: string) => void;
+  persistSessionNow: () => void;
 
-  // Derived
   isReadyToSubmit: (criteriaIds: string[]) => boolean;
+  isCriterionAddressed: (criterionId: string) => boolean;
 }
 
 const defaultSession = (): Omit<
@@ -56,15 +68,12 @@ const defaultSession = (): Omit<
 });
 
 export const useReviewStore = create<ReviewState>((set, get) => ({
-  // Initial placeholder state
   taskId: "",
   oerId: "",
   oerType: "url",
   oerSource: "",
   rubricTemplateId: "accessibility",
   ...defaultSession(),
-
-  // ── Init ──────────────────────────────────────────────────────────────────
 
   initSession: (session) => set({ ...session }),
 
@@ -78,8 +87,6 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       ...defaultSession(),
     }),
 
-  // ── Annotations ───────────────────────────────────────────────────────────
-
   addAnnotation: (annotation) =>
     set((s) => ({ annotations: [...s.annotations, annotation] })),
 
@@ -91,30 +98,53 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   getAnnotationsForCriterion: (criterionId) =>
     get().annotations.filter((a) => a.criterionId === criterionId),
 
-  // ── Ratings ───────────────────────────────────────────────────────────────
-
-  setRating: (criterionId, rating) =>
-    set((s) => ({
-      ratings: {
-        ...s.ratings,
-        [criterionId]: {
-          rating,
-          needsImprovementText: s.ratings[criterionId]?.needsImprovementText ?? "",
-          exceedsText: s.ratings[criterionId]?.exceedsText ?? "",
+  toggleNeedsImprovementActive: (criterionId) =>
+    set((s) => {
+      const cur = mergeRating(s.ratings[criterionId]);
+      return {
+        ratings: {
+          ...s.ratings,
+          [criterionId]: {
+            ...cur,
+            needsImprovementActive: !cur.needsImprovementActive,
+          },
         },
-      },
-    })),
+      };
+    }),
+
+  toggleExceedsActive: (criterionId) =>
+    set((s) => {
+      const cur = mergeRating(s.ratings[criterionId]);
+      return {
+        ratings: {
+          ...s.ratings,
+          [criterionId]: { ...cur, exceedsActive: !cur.exceedsActive },
+        },
+      };
+    }),
+
+  toggleProficientConfirmed: (criterionId) =>
+    set((s) => {
+      const cur = mergeRating(s.ratings[criterionId]);
+      return {
+        ratings: {
+          ...s.ratings,
+          [criterionId]: {
+            ...cur,
+            proficientConfirmed: !cur.proficientConfirmed,
+          },
+        },
+      };
+    }),
 
   setNeedsImprovementText: (criterionId, text) =>
     set((s) => ({
       ratings: {
         ...s.ratings,
-        [criterionId]: {
+        [criterionId]: mergeRating({
           ...s.ratings[criterionId],
-          rating: s.ratings[criterionId]?.rating ?? null,
-          exceedsText: s.ratings[criterionId]?.exceedsText ?? "",
           needsImprovementText: text,
-        },
+        }),
       },
     })),
 
@@ -122,18 +152,14 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     set((s) => ({
       ratings: {
         ...s.ratings,
-        [criterionId]: {
+        [criterionId]: mergeRating({
           ...s.ratings[criterionId],
-          rating: s.ratings[criterionId]?.rating ?? null,
-          needsImprovementText: s.ratings[criterionId]?.needsImprovementText ?? "",
           exceedsText: text,
-        },
+        }),
       },
     })),
 
-  getRating: (criterionId) => get().ratings[criterionId],
-
-  // ── Layout ────────────────────────────────────────────────────────────────
+  getCriterionRating: (criterionId) => mergeRating(get().ratings[criterionId]),
 
   setSplitRatio: (ratio) =>
     set({
@@ -145,30 +171,39 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
 
   setOerScrollY: (y) => set({ oerScrollY: y }),
 
-  // ── Status ────────────────────────────────────────────────────────────────
-
   setStatus: (status) => set({ status }),
   setLastSaved: (iso) => set({ lastSaved: iso }),
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  persistSessionNow: () => {
+    const now = new Date().toISOString();
+    const s = get();
+    saveSession({
+      taskId: s.taskId,
+      oerId: s.oerId,
+      oerType: s.oerType,
+      oerSource: s.oerSource,
+      rubricTemplateId: s.rubricTemplateId,
+      annotations: s.annotations,
+      ratings: s.ratings,
+      splitRatio: s.splitRatio,
+      oerScrollY: s.oerScrollY,
+      lastSaved: now,
+      status: s.status,
+    });
+    set({ lastSaved: now });
+  },
+
+  isCriterionAddressed: (criterionId) => {
+    const r = mergeRating(get().ratings[criterionId]);
+    return (
+      r.proficientConfirmed ||
+      r.needsImprovementActive ||
+      r.exceedsActive
+    );
+  },
 
   isReadyToSubmit: (criteriaIds) => {
-    const { ratings, annotations } = get();
-
-    // All criteria must have a rating
-    const allRated = criteriaIds.every((id) => ratings[id]?.rating != null);
-    if (!allRated) return false;
-
-    // "Needs Improvement" or "Exceeds" require evidence
-    const flagged = criteriaIds.filter(
-      (id) =>
-        ratings[id]?.rating === "needs_improvement" ||
-        ratings[id]?.rating === "exceeds"
-    );
-    const hasEvidence = flagged.every(
-      (id) => annotations.some((a) => a.criterionId === id)
-    );
-
-    return hasEvidence;
+    const { isCriterionAddressed } = get();
+    return criteriaIds.every((id) => isCriterionAddressed(id));
   },
 }));

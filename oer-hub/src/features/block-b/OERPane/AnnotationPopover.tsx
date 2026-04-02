@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useReviewStore } from "../../../store/reviewStore";
 import type { IRubricTemplate } from "../../../api/types";
 
@@ -13,6 +13,9 @@ interface AnnotationPopoverProps {
   onSave:        () => void;
   onCancel:      () => void;
 }
+
+const POPOVER_W = 320;
+const POPOVER_H = 260;
 
 export function AnnotationPopover({
   containerRef,
@@ -45,18 +48,20 @@ export function AnnotationPopover({
     return () => document.removeEventListener("mousedown", handler);
   }, [onCancel]);
 
-  // Clamp position so popover stays inside container
-  const containerRect = containerRef.current?.getBoundingClientRect();
-  const POPOVER_W = 320;
-  const POPOVER_H = 260;
-  let   left      = popoverX + 8;
-  let   top       = popoverY + 8;
-  if (containerRect) {
-    if (left + POPOVER_W > containerRect.width)  left = popoverX - POPOVER_W - 8;
-    if (top  + POPOVER_H > containerRect.height) top  = popoverY - POPOVER_H - 8;
-  }
-  left = Math.max(8, left);
-  top  = Math.max(8, top);
+  // Clamp position so popover stays inside container (imperative DOM update, no setState)
+  useLayoutEffect(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    let left = popoverX + 8;
+    let top  = popoverY + 8;
+    if (containerRect) {
+      if (left + POPOVER_W > containerRect.width)  left = popoverX - POPOVER_W - 8;
+      if (top  + POPOVER_H > containerRect.height) top  = popoverY - POPOVER_H - 8;
+    }
+    el.style.left = `${Math.max(8, left)}px`;
+    el.style.top  = `${Math.max(8, top)}px`;
+  }, [containerRef, popoverX, popoverY]);
 
   function handleSave() {
     if (!criterionId) { setError("Please select a criterion to link this evidence."); return; }
@@ -84,7 +89,6 @@ export function AnnotationPopover({
     <div
       ref={popoverRef}
       className="absolute z-30 w-80 bg-surface-container-lowest shadow-ambient rounded-md overflow-hidden"
-      style={{ left, top }}
     >
       {/* Header */}
       <div className="px-4 py-3 bg-surface-container-low flex items-center justify-between">

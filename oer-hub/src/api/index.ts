@@ -4,12 +4,92 @@
  * To switch to a real backend: replace implementations below, keep signatures.
  */
 
-import type { IOer, ITask, IReviewSession, RubricTemplateId, IRubricTemplate } from "./types";
+import type {
+  IAnnotation,
+  ICriterionRating,
+  IOer,
+  IReviewSession,
+  ITask,
+  IRubricTemplate,
+  RatingValue,
+  RubricTemplateId,
+} from "./types";
 import { MOCK_OERS, MOCK_AVAILABLE_OERS } from "./mock/oers";
 import { MOCK_ACTIVE_TASKS, MOCK_POOL_TASKS, DEMO_TASK } from "./mock/tasks";
 
-const SESSION_KEY = (taskId: string) => `oer-hub:session:${taskId}`;
+const SESSION_KEY_V3 = (taskId: string) => `oer-hub:session:v3:${taskId}`;
+/** @deprecated Legacy key — migrated on load */
+const SESSION_KEY_V2 = (taskId: string) => `oer-hub:session:v2:${taskId}`;
 const PREAMBLE_KEY = (rubricId: string) => `oer-hub:preamble-seen:${rubricId}`;
+
+function migrateCriterionRating(legacy: unknown): ICriterionRating {
+  if (
+    legacy &&
+    typeof legacy === "object" &&
+    "needsImprovementActive" in (legacy as object)
+  ) {
+    const r = legacy as ICriterionRating;
+    return {
+      needsImprovementActive: Boolean(r.needsImprovementActive),
+      exceedsActive: Boolean(r.exceedsActive),
+      proficientConfirmed: Boolean(r.proficientConfirmed),
+      needsImprovementText: r.needsImprovementText ?? "",
+      exceedsText: r.exceedsText ?? "",
+    };
+  }
+  const L = legacy as {
+    rating?: RatingValue | null;
+    needsImprovementText?: string;
+    exceedsText?: string;
+  };
+  const rating = L?.rating ?? null;
+  return {
+    needsImprovementActive: rating === "needs_improvement",
+    exceedsActive: rating === "exceeds",
+    proficientConfirmed: rating === "proficient",
+    needsImprovementText: L?.needsImprovementText ?? "",
+    exceedsText: L?.exceedsText ?? "",
+  };
+}
+
+function migrateAnnotation(a: unknown): IAnnotation {
+  const x = a as Partial<IAnnotation> & { evidencePolarity?: unknown };
+  return {
+    id: x.id ?? "",
+    taskId: x.taskId ?? "",
+    criterionId: x.criterionId ?? "",
+    comment: x.comment ?? "",
+    createdAt: x.createdAt ?? new Date().toISOString(),
+    anchor: x.anchor ?? { type: "web", selectedText: "", rects: [] },
+  };
+}
+
+function normalizeSession(raw: unknown): IReviewSession {
+  const s = raw as Partial<IReviewSession> & {
+    ratings?: Record<string, unknown>;
+    annotations?: unknown[];
+  };
+  const ratings: Record<string, ICriterionRating> = {};
+  if (s.ratings && typeof s.ratings === "object") {
+    for (const [k, v] of Object.entries(s.ratings)) {
+      ratings[k] = migrateCriterionRating(v);
+    }
+  }
+  const annotations = (s.annotations ?? []).map(migrateAnnotation);
+  return {
+    taskId: s.taskId ?? "",
+    oerId: s.oerId ?? "",
+    oerType: s.oerType ?? "url",
+    oerSource: s.oerSource ?? "",
+    rubricTemplateId: s.rubricTemplateId ?? "accessibility",
+    annotations,
+    ratings,
+    splitRatio: typeof s.splitRatio === "number" ? s.splitRatio : 0.5,
+    oerScrollY: typeof s.oerScrollY === "number" ? s.oerScrollY : 0,
+    lastSaved: s.lastSaved ?? new Date().toISOString(),
+    status: s.status === "submitted" ? "submitted" : "draft",
+  };
+}
 
 // ── OER endpoints ─────────────────────────────────────────────────────────────
 
@@ -33,7 +113,6 @@ export async function getPoolTasks(): Promise<ITask[]> {
 
 export async function getTask(taskId: string): Promise<ITask | null> {
   const all = [...MOCK_ACTIVE_TASKS, ...MOCK_POOL_TASKS];
-  // For demo purposes, always return DEMO_TASK for any taskId
   return Promise.resolve(all.find((t) => t.id === taskId) ?? DEMO_TASK);
 }
 
@@ -50,20 +129,31 @@ export async function getRubricTemplate(
 
 export function loadSession(taskId: string): IReviewSession | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY(taskId));
-    if (!raw) return null;
-    return JSON.parse(raw) as IReviewSession;
+    const v3 = localStorage.getItem(SESSION_KEY_V3(taskId));
+    if (v3) {
+      return normalizeSession(JSON.parse(v3));
+    }
+    const v2 = localStorage.getItem(SESSION_KEY_V2(taskId));
+    if (v2) {
+      const migrated = normalizeSession(JSON.parse(v2));
+      saveSession(migrated);
+      localStorage.removeItem(SESSION_KEY_V2(taskId));
+      return migrated;
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
 export function saveSession(session: IReviewSession): void {
-  localStorage.setItem(SESSION_KEY(session.taskId), JSON.stringify(session));
+  const normalized = normalizeSession(session);
+  localStorage.setItem(SESSION_KEY_V3(normalized.taskId), JSON.stringify(normalized));
 }
 
 export function clearSession(taskId: string): void {
-  localStorage.removeItem(SESSION_KEY(taskId));
+  localStorage.removeItem(SESSION_KEY_V3(taskId));
+  localStorage.removeItem(SESSION_KEY_V2(taskId));
 }
 
 // ── Preamble seen tracking ────────────────────────────────────────────────────

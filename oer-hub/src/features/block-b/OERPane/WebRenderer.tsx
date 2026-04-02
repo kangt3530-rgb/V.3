@@ -1,5 +1,5 @@
 import { useRef, useState, type RefObject } from "react";
-import type { IAnnotation } from "../../../api/types";
+import type { IAnnotation, IRubricTemplate } from "../../../api/types";
 import { AnnotationLayer } from "./AnnotationLayer";
 
 interface WebRendererProps {
@@ -7,13 +7,14 @@ interface WebRendererProps {
   annotations: IAnnotation[];
   activeAnnotationId?: string | null;
   onScrollRef?: RefObject<((annotationId: string) => void) | null>;
+  rubricTemplate?: IRubricTemplate;
 }
 
 export function WebRenderer({
   url,
   annotations,
   activeAnnotationId,
-  onScrollRef: _onScrollRef,
+  rubricTemplate,
 }: WebRendererProps) {
   const [loadError, setLoadError] = useState(false);
   const [annotationMode, setAnnotationMode] = useState(false);
@@ -82,6 +83,7 @@ export function WebRenderer({
           activeAnnotationId={activeAnnotationId}
           annotationMode={annotationMode}
           type="web"
+          rubricTemplate={rubricTemplate}
         />
       </div>
     </div>

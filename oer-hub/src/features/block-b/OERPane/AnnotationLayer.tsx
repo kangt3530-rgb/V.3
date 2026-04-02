@@ -4,7 +4,7 @@ import {
   type RefObject,
   type MouseEvent,
 } from "react";
-import type { IAnnotation } from "../../../api/types";
+import type { IAnnotation, IRubricTemplate } from "../../../api/types";
 import { AnnotationPopover } from "./AnnotationPopover";
 
 interface AnnotationLayerProps {
@@ -13,6 +13,7 @@ interface AnnotationLayerProps {
   activeAnnotationId: string | null | undefined;
   annotationMode:     boolean;
   type:               "web" | "pdf";
+  rubricTemplate?:    IRubricTemplate;
 }
 
 interface SelectionState {
@@ -28,6 +29,7 @@ export function AnnotationLayer({
   activeAnnotationId,
   annotationMode,
   type,
+  rubricTemplate,
 }: AnnotationLayerProps) {
   const [selection, setSelection] = useState<SelectionState | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -116,6 +118,7 @@ export function AnnotationLayer({
           anchorType={type}
           popoverX={selection.x}
           popoverY={selection.y}
+          rubricTemplate={rubricTemplate}
           onSave={() => setSelection(null)}
           onCancel={() => setSelection(null)}
         />

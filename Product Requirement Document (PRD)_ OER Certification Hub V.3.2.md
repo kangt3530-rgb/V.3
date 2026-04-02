@@ -16,6 +16,7 @@
 | 2026.2.16 | v2.0 | Updated based on customer meeting feedback: Adjusted terminology, added web support, clarified storage policies and copyright logic |
 | 2026.3.29 | v3.0 | Simplifies previous iterations by focusing exclusively on the essential functional core required for the upcoming launchRedesign the Integrated Reviewer Console (Block B), which now emphasizes a vertical split-pane interaction model and a mandatory evidence-driven rating system to ensure high-fidelity, professional qualitative feedback. |
 | 2026-03-31 | v3.1 | Layout Architecture Update: Transitioned Block B from a vertical split-pane to a horizontal (side-by-side) split-pane model to optimize long-form OER reading and side-by-side evaluation. |
+| 2026-04-02 | v3.2 | User Flow Updated for Block A and Block B |
 
 ### 
 
@@ -123,9 +124,9 @@ Step 3: Criterion-Level Evaluation & Progress Saving
   * Auto-Layout Adjustment: Upon interacting with the Rubric Panel/Console on the right, the system automatically adjusts the split-pane to a 5:5 ratio. This maximizes space for qualitative feedback and review entry, as the relative need for wide-screen OER viewing decreases during the synthesis/rating phase.  
   * Evidence Bank Review: The Evidence Bank for that Criterion expands, displaying all linked annotations from Step 2\. These serve as contextual reminders to help James recall specific issues or exemplary practices found during his reading.  
   * James clicks a snippet in the Evidence Bank; the Left Pane auto-scrolls and highlights the original location to refresh his memory of the context.  
-  * Rating & Synthesis: Based on the gathered evidence, James selects a rating via the Single-Point Rubric UI (Exceeds, Exemplifies Standard, or Needs Improvement) and writes a new, synthesized qualitative comment that summarizes the findings for this criterion.  
+  * Rating & Synthesis: Based on the gathered evidence, James selects a rating via the Single-Point Rubric UI (`Exceeds`, `Exemplifies Standard`, or `Needs Improvement`) and writes a new, synthesized qualitative comment that summarizes the findings for this criterion.  
   * Draft Saving: The system triggers an Auto-Save whenever a rating is selected or an annotation is added. James can also manually click "Save Draft" to secure his current session state (including split-pane proportions and scroll positions).  
-  * Conditional Enforcement: If Needs Improvement or Exceeds is chosen, the system mandates a qualitative justification and verifies the presence of supporting evidence in the bank.
+  * Conditional Enforcement: If `Needs Improvement` or `Exceeds` is chosen, the system mandates a qualitative justification and verifies the presence of supporting evidence in the bank.
 
 Step 4: Validation & Final Submission
 
@@ -148,9 +149,10 @@ Step 4: Validation & Final Submission
 | **B.7** | As a reviewer, I want to summon an AI assistant only when needed. | **Full-Height AI Sidebar:** Collapsible right-hand panel providing real-time accessibility audits, tone adjustments, and criteria interpretation (P1). | P1 | **Revised** |
 | **B.8** | As a reviewer, I want the workspace to automatically provide more space when I focus on the rubric so I can write comments comfortably. | **Adaptive Layout Trigger:** Automatic adjustment of the split-pane to a 5:5 ratio when the user clicks or focuses on the Rubric Console to facilitate synthesis and qualitative data entry. | P1 | **Planned** |
 | **B.9** | As a reviewer, I want to use the standard Single-Point Rubric format. | **Single-Point Rubric Interface:** Horizontal three-column layout. The center column defines the "Proficient Standard"; the sides record "Needs Improvement" or "Exceeds." | P0 | **Revised** |
-| **B.10** | As a reviewer, I want to save my progress as a draft so that I can pause a long review and resume it later without losing data. | **Draft Save & Persistence:** Implementation of an auto-save mechanism and a manual "Save Draft" button to ensure session data (annotations, ratings, split positions) is preserved across sessions. | P0 | **Planned** |
-| **B.11** | As a reviewer, I want the system to remind me of my earlier findings so I can justify my final ratings with evidence. | **Evidence-Driven Validation:** If "Needs Improvement" or "Exceeds" is selected, the system enforces a qualitative comment. The Evidence Bank displays prior annotations for that criterion to support the reviewer's decision and ensure ratings are fact-based. | P0 | **Revised** |
-| **B.12** | As a reviewer, I must complete all criteria within a rubric module before submitting. | **Full-Rubric Completion Lock:** Final submission is disabled until every criterion within the selected rubric (e.g., Accessibility) is evaluated. | P0 | **Revised** |
+| **B.10** | As a reviewer, I want to access the full, detailed scholarly description of each criterion so that I can fully understand the standards before rating. | Expandable Criteria Details: Rubric criteria cards support a click-to-expand or modal interaction. Upon activation, the system reveals the comprehensive criteria descriptions (from original source documents), including detailed performance indicators for Exceeds/Standard/Needs Improvement levels. | P0 | **Planned** |
+| **B.11** | As a reviewer, I want to save my progress as a draft so that I can pause a long review and resume it later without losing data. | **Draft Save & Persistence:** Implementation of an auto-save mechanism and a manual "Save Draft" button to ensure session data (annotations, ratings, split positions) is preserved across sessions. | P0 | **Planned** |
+| **B.12** | As a reviewer, I want the system to remind me of my earlier findings so I can justify my final ratings with evidence.  | **Evidence-Driven Validation**: If "Needs Improvement" or "Exceeds" is selected, the system enforces a qualitative comment. The Evidence Bank displays prior annotations for that criterion to support the reviewer's decision and ensure ratings are fact-based. | P0 | **Revised** |
+| **B.13** | As a reviewer, I must complete all criteria within a rubric module before submitting. | **Full-Rubric Completion Lock:** Final submission is disabled until every criterion within the selected rubric (e.g., Accessibility) is evaluated. | P0 | **Revised** |
 
 4\. Rubric Criteria Catalog (Data Schema)  
 The system will load the following specific criteria based on the assigned task:

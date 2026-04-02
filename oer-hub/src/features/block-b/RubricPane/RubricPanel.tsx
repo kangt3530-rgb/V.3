@@ -21,11 +21,12 @@ export function RubricPanel({
   isSubmitting,
 }: RubricPanelProps) {
   const getAnnotationsForCriterion = useReviewStore((s) => s.getAnnotationsForCriterion);
-  const ratings        = useReviewStore((s) => s.ratings);
+  const isCriterionAddressed = useReviewStore((s) => s.isCriterionAddressed);
   const isReadyToSubmit = useReviewStore((s) => s.isReadyToSubmit);
+  const persistSessionNow = useReviewStore((s) => s.persistSessionNow);
 
   const criteriaIds     = template.criteria.map((c) => c.id);
-  const completedCount  = criteriaIds.filter((id) => ratings[id]?.rating != null).length;
+  const completedCount  = criteriaIds.filter((id) => isCriterionAddressed(id)).length;
   const totalCount      = criteriaIds.length;
   const progressPercent = Math.round((completedCount / totalCount) * 100);
   const canSubmit       = isReadyToSubmit(criteriaIds);
@@ -71,13 +72,6 @@ export function RubricPanel({
 
       {/* Submission footer */}
       <div className="flex-shrink-0 px-6 py-4 bg-surface-container space-y-3">
-        {/* Completeness feedback */}
-        {!canSubmit && completedCount === totalCount && (
-          <p className="text-body-sm text-error flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[14px]">warning</span>
-            Some flagged criteria require evidence before submission.
-          </p>
-        )}
         {completedCount < totalCount && (
           <p className="text-body-sm text-on-surface-variant">
             {totalCount - completedCount} criteria remaining.
@@ -85,7 +79,7 @@ export function RubricPanel({
         )}
 
         <div className="flex gap-3">
-          <Button variant="ghost" size="sm" icon="save">
+          <Button variant="ghost" size="sm" icon="save" type="button" onClick={() => persistSessionNow()}>
             Save Draft
           </Button>
           <Button

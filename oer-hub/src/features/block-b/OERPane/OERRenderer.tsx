@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useReviewStore } from "../../../store/reviewStore";
 import { WebRenderer } from "./WebRenderer";
+import { MockOERRenderer } from "./MockOERRenderer";
 import type { IRubricTemplate } from "../../../api/types";
 
 interface OERRendererProps {
@@ -10,12 +11,23 @@ interface OERRendererProps {
 }
 
 export function OERRenderer({
+  rubricTemplate,
   activeAnnotationId,
 }: OERRendererProps) {
   const oerType       = useReviewStore((s) => s.oerType);
   const oerSource     = useReviewStore((s) => s.oerSource);
   const annotations   = useReviewStore((s) => s.annotations);
   const scrollRef     = useRef<((id: string) => void) | null>(null);
+
+  if (oerType === "mock") {
+    return (
+      <MockOERRenderer
+        annotations={annotations}
+        activeAnnotationId={activeAnnotationId}
+        rubricTemplate={rubricTemplate}
+      />
+    );
+  }
 
   if (oerType === "url") {
     return (
@@ -24,6 +36,7 @@ export function OERRenderer({
         annotations={annotations}
         activeAnnotationId={activeAnnotationId}
         onScrollRef={scrollRef}
+        rubricTemplate={rubricTemplate}
       />
     );
   }
