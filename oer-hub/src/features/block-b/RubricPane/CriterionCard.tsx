@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from "react";
+import { useState } from "react";
 import type { IRubricCriterion, IAnnotation } from "../../../api/types";
 import { useReviewStore } from "../../../store/reviewStore";
 import { getProficientRubricMarkdownText } from "../../../data/rubricProficientLookup";
@@ -57,7 +57,6 @@ export function CriterionCard({
   const setExceedsText = useReviewStore((s) => s.setExceedsText);
   const getCriterionRating = useReviewStore((s) => s.getCriterionRating);
   const isCriterionAddressed = useReviewStore((s) => s.isCriterionAddressed);
-  const persistSessionNow = useReviewStore((s) => s.persistSessionNow);
 
   const ratingData = getCriterionRating(criterion.id);
   const evidenceCount = annotations.length;
@@ -65,11 +64,6 @@ export function CriterionCard({
 
   const fullProficientBody =
     getProficientRubricMarkdownText(rubricTemplateId, criterion.id) ?? criterion.standard;
-
-  function handleSaveClick(e: MouseEvent<HTMLButtonElement>) {
-    e.stopPropagation();
-    persistSessionNow();
-  }
 
   function handleBottomButton(key: "ni" | "proficient" | "exceeds") {
     if (key === "ni") toggleNeedsImprovementActive(criterion.id);
@@ -88,14 +82,14 @@ export function CriterionCard({
         done ? "bg-surface-container-lowest shadow-card" : "bg-surface-container-low",
       ].join(" ")}
     >
-      <div className="flex w-full items-center gap-2 px-5 py-4">
+      <div className="px-5 py-4">
         <button
           type="button"
           onClick={() => {
             setOpen((o) => !o);
             if (!open) onFocus();
           }}
-          className="flex flex-1 min-w-0 items-center gap-3 text-left hover:bg-surface-container/50 transition-colors rounded-sm -ml-1 pl-1 pr-2 py-1"
+          className="flex w-full min-w-0 items-center gap-3 text-left hover:bg-surface-container/50 transition-colors rounded-sm -ml-1 pl-1 pr-2 py-1"
         >
           <div
             className={[
@@ -134,16 +128,6 @@ export function CriterionCard({
               expand_more
             </span>
           </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSaveClick}
-          className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-sm text-label-sm font-label font-semibold uppercase tracking-widest text-secondary hover:bg-secondary-container/40 transition-colors"
-          title="Save draft"
-        >
-          <span className="material-symbols-outlined text-[18px]">save</span>
-          Save
         </button>
       </div>
 
