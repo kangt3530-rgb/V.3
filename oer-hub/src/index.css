@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Material Symbols weight ── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Base resets ── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f4f1ea;
+  color: #1c1c18;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Scrollbar: minimal, warm ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c4c6cd;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #74777d;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Typography helpers ── */
+.serif { font-family: 'Newsreader', Georgia, serif; }
+.serif-italic { font-family: 'Newsreader', Georgia, serif; font-style: italic; }
+
+/* ── Text selection: warm gold ── */
+::selection {
+  background-color: #fed65b;
+  color: #1c1c18;
+}
+
+/* ── Annotation highlight (OER pane) ── */
+.annotation-highlight {
+  background-color: rgba(254, 214, 91, 0.45);
+  cursor: pointer;
+  border-radius: 1px;
+  transition: background-color 150ms ease;
+}
+.annotation-highlight:hover,
+.annotation-highlight.active {
+  background-color: rgba(254, 214, 91, 0.75);
+}
+
+/* ── Split-pane layout transition ── */
+.split-pane-grid {
+  transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Input: gold underline on focus (DESIGN.md) ── */
+.input-underline {
+  @apply bg-transparent border-0 border-b-2 border-outline-variant outline-none
+         focus:border-secondary transition-colors duration-150 pb-1;
+}
+
+/* ── Ghost border fallback (DESIGN.md §4) ── */
+.ghost-border {
+  outline: 1px solid rgba(196, 198, 205, 0.15);
+}

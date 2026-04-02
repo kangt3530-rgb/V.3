@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OER Certification Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1A2B3C",
+                        secondary: "#D4AF37",
+                        tertiary: "#38260B",
+                        "background-light": "#F4F1EA",
+                        "background-dark": "#121212",
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        };
+    </script>
+<style>
+        .split-pane-divider {
+            cursor: col-resize;
+            width: 4px;
+            background-color: transparent;
+            transition: background-color 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+        .split-pane-divider:hover {
+            background-color: #D4AF37;
+        }
+        .split-pane-divider::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            height: 30px;
+            width: 2px;
+            background-color: #E5E7EB;
+            border-radius: 2px;
+        }
+        .dark .split-pane-divider::after {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-sans h-screen flex flex-col overflow-hidden">
+<header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16 flex items-center justify-between px-6 shrink-0 z-20 shadow-sm">
+<div class="flex items-center w-1/4">
+<span class="font-serif font-bold text-xl text-primary dark:text-secondary">OER Certification Hub</span>
+</div>
+<div class="flex items-center justify-center w-2/4 gap-4">
+<h1 class="font-serif font-semibold text-lg text-gray-900 dark:text-white">Introduction to Sociology v2</h1>
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-tertiary">
+                Under Review
+            </span>
+</div>
+<div class="flex items-center justify-end w-1/4">
+<button class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-secondary dark:focus:ring-offset-gray-800">
+<span class="sr-only">Open user menu</span>
+<div class="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center">
+<span class="material-icons text-sm">person</span>
+</div>
+</button>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden">
+<section class="w-[70%] h-full p-6 overflow-y-auto flex flex-col">
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft h-full flex items-center justify-center border border-gray-100 dark:border-gray-700">
+<div class="text-center space-y-4 text-gray-400 dark:text-gray-500">
+<span class="material-icons text-6xl opacity-50">menu_book</span>
+<h2 class="text-2xl font-medium">Reading Zone: OER Content Display</h2>
+<p class="text-sm">Main document viewing area</p>
+</div>
+</div>
+</section>
+<div class="split-pane-divider hidden md:block"></div>
+<section class="flex-1 md:w-[30%] h-full p-6 pl-0 overflow-y-auto flex flex-col">
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-soft h-full flex items-center justify-center border border-gray-100 dark:border-gray-700">
+<div class="text-center space-y-4 text-gray-400 dark:text-gray-500">
+<span class="material-icons text-6xl opacity-50">edit_note</span>
+<h2 class="text-xl font-medium">Working Zone: Reviewer Console</h2>
+<p class="text-sm">Tools and notes area</p>
+</div>
+</div>
+</section>
+</main>
+
+</body></html>

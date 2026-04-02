@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Integrated Reviewer Console | OER Certification Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-container": "#38260b",
+              "on-secondary": "#ffffff",
+              "outline": "#74777d",
+              "on-primary-fixed": "#0b1d2d",
+              "on-tertiary-fixed-variant": "#584326",
+              "surface-container-lowest": "#ffffff",
+              "inverse-on-surface": "#f3f0e9",
+              "on-tertiary-container": "#a88c69",
+              "tertiary": "#211200",
+              "secondary": "#735c00",
+              "surface-variant": "#e5e2db",
+              "surface-container-highest": "#e5e2db",
+              "primary-fixed-dim": "#b7c8de",
+              "error-container": "#ffdad6",
+              "on-surface-variant": "#44474c",
+              "inverse-primary": "#b7c8de",
+              "on-tertiary-fixed": "#281802",
+              "surface-dim": "#dcdad3",
+              "surface-container": "#f1eee7",
+              "surface-container-high": "#ebe8e1",
+              "on-primary-container": "#8192a7",
+              "on-error": "#ffffff",
+              "on-primary": "#ffffff",
+              "secondary-fixed": "#ffe088",
+              "primary": "#041627",
+              "primary-fixed": "#d2e4fb",
+              "secondary-fixed-dim": "#e9c349",
+              "outline-variant": "#c4c6cd",
+              "tertiary-fixed-dim": "#e1c29b",
+              "on-surface": "#1c1c18",
+              "surface-tint": "#4f6073",
+              "surface-bright": "#fcf9f2",
+              "on-secondary-container": "#745c00",
+              "on-tertiary": "#ffffff",
+              "on-secondary-fixed-variant": "#574500",
+              "on-background": "#1c1c18",
+              "tertiary-fixed": "#feddb5",
+              "surface-container-low": "#f6f3ec",
+              "background": "#fcf9f2",
+              "secondary-container": "#fed65b",
+              "primary-container": "#1a2b3c",
+              "on-error-container": "#93000a",
+              "inverse-surface": "#31312c",
+              "on-primary-fixed-variant": "#38485a",
+              "surface": "#fcf9f2",
+              "on-secondary-fixed": "#241a00",
+              "error": "#ba1a1a"
+            },
+            fontFamily: {
+              "headline": ["Newsreader", "serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .serif-italic { font-family: 'Newsreader', serif; font-style: italic; }
+      .writing-mode-vertical { writing-mode: vertical-rl; }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface antialiased overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation -->
+<nav class="bg-[#F4F1EA] dark:bg-slate-900 flex justify-between items-center w-full px-8 py-4 z-50">
+<div class="flex items-center gap-12">
+<span class="text-xl font-serif font-bold tracking-tight text-[#041627] dark:text-white">OER Certification Hub</span>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-[#735C00] transition-colors duration-200" href="#">PIPELINE</a>
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-[#735C00] transition-colors duration-200" href="#">RESOURCES</a>
+<a class="text-slate-500 dark:text-slate-400 font-medium hover:text-[#735C00] transition-colors duration-200" href="#">ARCHIVE</a>
+<a class="text-[#041627] dark:text-white border-b-2 border-[#735C00] font-semibold hover:text-[#735C00] transition-colors duration-200" href="#">ATELIERS</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Saved to Draft
+            </div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant material-symbols-outlined">notifications</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a senior academic reviewer in a minimalist office setting with warm natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlVdOZTqGtKdgixRCyMEGjuHi0SHzQH5A9z6-Vn3xp5T4WHVOLVbXsUr_KmFXcY-PjRLpUfi8K9NARcLAzr_qgbd4rcIiSRumX0SaO1iYnH6x2094kjxmC6fwkm6G8MPogoqx3suYPmkSVCzXwgz3QbhEb5vVVruc4KGKvztcDslZ3Hu7KZa3PpayeOPDl-7CGvNB6_o4AuGv0x4l8K-7NYBfV2Td1sY43tr2tBhxT6F1FtYwQTvsCTjqnxhZSAQKn9U8xZyKwu0A"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Workspace -->
+<main class="flex-grow flex overflow-hidden">
+<!-- Left Pane: The Reading Zone (60%) -->
+<section class="w-[60%] flex bg-[#FAF9F6] relative group">
+<!-- Vertical Toolbar -->
+<div class="w-14 flex flex-col items-center py-8 gap-8 border-r border-outline-variant/10">
+<button class="p-2 text-primary hover:bg-surface-container-high rounded transition-all duration-200 group/btn">
+<span class="material-symbols-outlined">ink_highlighter</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-high rounded transition-all duration-200">
+<span class="material-symbols-outlined">sticky_note_2</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-high rounded transition-all duration-200">
+<span class="material-symbols-outlined">format_quote</span>
+</button>
+<div class="mt-auto">
+<button class="p-2 text-primary/40 hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+<!-- Content Area -->
+<div class="flex-grow overflow-y-auto px-16 py-20 scrollbar-hide">
+<div class="max-w-2xl mx-auto">
+<header class="mb-12">
+<p class="text-xs font-label uppercase tracking-[0.2em] text-secondary mb-4">Current Module: Physical Sciences</p>
+<h1 class="text-5xl font-headline text-primary leading-tight">Quantum Mechanics: An Open Resource</h1>
+</header>
+<article class="font-headline text-lg leading-relaxed text-on-surface/90 space-y-8">
+<p>
+                            To understand the behavior of particles at the subatomic level, we must first abandon the deterministic intuition of classical mechanics. In the quantum realm, entities exist as wavefunctions—mathematical descriptions that encapsulate the probability of a particle's state. 
+                        </p>
+<p>
+<span class="bg-[#FFF9C4] px-1 relative cursor-help">
+                                The transition from classical state vectors to Hilbert space represents a fundamental shift in how we conceptualize physical reality.
+                                <span class="absolute -right-6 top-0 material-symbols-outlined text-primary text-sm opacity-60">comment</span>
+</span>
+                             It is not merely a change in mathematical notation but a reassessment of the observer's role in the measurement process. When an observer measures a quantum system, the wavefunction collapses into a single eigenstate.
+                        </p>
+<p>
+                            Historically, this was known as the Copenhagen interpretation, spearheaded by Niels Bohr and Werner Heisenberg. It posits that physical systems do not have definite properties prior to being measured, and quantum mechanics can only predict the probability distribution of a measurement's possible results.
+                        </p>
+<p>
+                            This indeterminacy is famously captured in Heisenberg's Uncertainty Principle, which states that certain pairs of physical properties, such as position and momentum, cannot both be known to arbitrary precision. The more accurately we know one, the less accurately we can know the other.
+                        </p>
+</article>
+</div>
+</div>
+</section>
+<!-- Draggable Divider -->
+<div class="w-px bg-[#EAE5D9] h-full cursor-col-resize hover:w-1 hover:bg-secondary transition-all"></div>
+<!-- Right Pane: The Working Zone (40%) -->
+<section class="flex-grow bg-white flex flex-col">
+<!-- Header Status Bar -->
+<div class="px-8 py-6 flex justify-between items-center bg-surface-container-low/30 border-b border-outline-variant/10">
+<div>
+<h2 class="serif-italic text-xl text-primary">Review Rubric: Scientific Accuracy &amp; Rigor</h2>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mt-1">Audit Phase 2 • section 4.2</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-secondary-container/20 rounded-full">
+<span class="w-1 h-1 rounded-full bg-secondary animate-pulse"></span>
+<span class="text-[10px] font-bold text-secondary tracking-tighter">IN PROGRESS</span>
+</div>
+<button class="bg-primary text-white px-5 py-2 text-xs font-label font-bold tracking-widest hover:bg-primary-container transition-all active:scale-95">
+                        SUBMIT REVIEW
+                    </button>
+</div>
+</div>
+<!-- Rubric Content -->
+<div class="flex-grow p-8 overflow-y-auto">
+<!-- Single-Point Rubric Card -->
+<div class="bg-white border border-outline-variant/20 rounded-lg overflow-hidden">
+<div class="grid grid-cols-3 min-h-[400px]">
+<!-- Left: Needs Improvement -->
+<div class="p-8 border-r border-outline-variant/10 relative">
+<div class="absolute top-0 left-0 w-1 h-full bg-error/40"></div>
+<h3 class="text-[10px] font-label uppercase tracking-[0.2em] text-error font-bold mb-6">Evidence of Needs Improvement</h3>
+<div class="bg-surface-container-low p-5 rounded-lg border-l-2 border-error">
+<p class="text-sm font-headline italic text-on-surface/70 leading-relaxed">
+                                    "The transition from classical state vectors to Hilbert space represents a fundamental shift in how we conceptualize physical reality."
+                                </p>
+</div>
+<p class="mt-4 text-xs text-on-surface-variant leading-relaxed">
+                                Text requires more explicit grounding in why Hilbert space is necessary for the beginner learner.
+                            </p>
+</div>
+<!-- Center: Criterion -->
+<div class="p-8 bg-surface-container-lowest flex flex-col items-center text-center">
+<span class="text-[10px] font-label uppercase tracking-widest text-secondary font-bold mb-2">Metric 2.1</span>
+<h3 class="font-headline text-2xl text-primary mb-6">Clarity of Distinction</h3>
+<div class="space-y-4 text-sm text-on-surface/80 leading-relaxed">
+<p>Criterion requires that the resource explicitly distinguishes between classical and quantum mechanical frameworks without introducing pedagogical "leaps."</p>
+<div class="w-12 h-px bg-outline-variant/30 mx-auto my-6"></div>
+<p class="text-xs italic text-on-surface-variant">The reviewer must assess if the conceptual bridge is sturdy enough for an introductory student.</p>
+</div>
+</div>
+<!-- Right: Exceeds Expectations -->
+<div class="p-8 border-l border-outline-variant/10 relative">
+<h3 class="text-[10px] font-label uppercase tracking-[0.2em] text-secondary font-bold mb-6">Exceeds Expectations</h3>
+<div class="flex flex-col items-center justify-center h-48 border-2 border-dashed border-outline-variant/20 rounded-xl group hover:border-secondary/40 transition-colors">
+<button class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-on-surface-variant group-hover:text-secondary transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+                                    + Add Praise
+                                </button>
+</div>
+<p class="mt-4 text-xs text-on-surface-variant leading-relaxed opacity-50">
+                                Highlight areas where the text goes above and beyond in clarifying complex subatomic theories.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Secondary Metadata -->
+<div class="mt-12 grid grid-cols-2 gap-8">
+<div class="p-6 bg-surface-container-low rounded-lg">
+<h4 class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-3">Previous Auditor Notes</h4>
+<div class="flex items-start gap-4">
+<div class="w-6 h-6 rounded-full bg-primary-container text-[8px] flex items-center justify-center text-white">DB</div>
+<p class="text-xs text-on-surface/70 leading-relaxed italic">"Ensure the transition to matrix mechanics in the next chapter is hinted at here."</p>
+</div>
+</div>
+<div class="p-6 border border-outline-variant/20 rounded-lg">
+<h4 class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-3">Linked Resources</h4>
+<ul class="space-y-2">
+<li class="flex items-center gap-2 text-xs text-primary hover:text-secondary cursor-pointer">
+<span class="material-symbols-outlined text-sm">link</span>
+                                MIT OCW: Quantum I Syllabus
+                            </li>
+<li class="flex items-center gap-2 text-xs text-primary hover:text-secondary cursor-pointer">
+<span class="material-symbols-outlined text-sm">link</span>
+                                Feynman Lectures: Vol III
+                            </li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- AI Sidekick: Collapsible Right Strip -->
+<aside class="fixed right-0 top-16 h-[calc(100vh-64px)] z-40 bg-[#F6F3EC] dark:bg-slate-800/50 w-16 hover:w-64 transition-all duration-300 group/sidebar shadow-[-12px_0_40px_rgba(28,28,24,0.06)] flex flex-col items-center py-6 overflow-hidden backdrop-blur-xl">
+<div class="flex flex-col items-center gap-1 mb-8 group-hover:px-6 group-hover:items-start group-hover:w-full transition-all">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<div class="hidden group-hover:block transition-all opacity-0 group-hover:opacity-100 mt-2">
+<p class="text-lg font-serif italic text-[#1A2B3C]">AI Sidekick</p>
+<p class="text-[10px] font-sans uppercase tracking-widest text-on-surface-variant">OER Audit Assistant</p>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full px-2 group-hover:px-4">
+<div class="flex items-center gap-4 text-[#735C00] bg-[#FFFFFF] rounded-l-lg p-3 cursor-pointer">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="hidden group-hover:block text-[10px] font-sans uppercase tracking-widest font-bold">Analysis</span>
+</div>
+<div class="flex items-center gap-4 text-slate-400 p-3 hover:bg-[#FCF9F2] dark:hover:bg-slate-700 rounded-l-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">rule</span>
+<span class="hidden group-hover:block text-[10px] font-sans uppercase tracking-widest">Guidelines</span>
+</div>
+<div class="flex items-center gap-4 text-slate-400 p-3 hover:bg-[#FCF9F2] dark:hover:bg-slate-700 rounded-l-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="hidden group-hover:block text-[10px] font-sans uppercase tracking-widest">Review Log</span>
+</div>
+<div class="flex items-center gap-4 text-slate-400 p-3 hover:bg-[#FCF9F2] dark:hover:bg-slate-700 rounded-l-lg cursor-pointer transition-all">
+<span class="material-symbols-outlined">folder_zip</span>
+<span class="hidden group-hover:block text-[10px] font-sans uppercase tracking-widest">History</span>
+</div>
+</div>
+<div class="mt-auto hidden group-hover:block px-6 pb-4 w-full">
+<div class="bg-surface-container-highest p-4 rounded-lg">
+<p class="text-[10px] font-bold text-primary mb-2">QUICK SUGGESTION</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">Consider checking the 'Accessibility' tab. Quantum equations often lack alt-text in this OER series.</p>
+</div>
+</div>
+</aside>
+</main>
+</body></html>
