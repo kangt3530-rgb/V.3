@@ -20,10 +20,10 @@ const BTN: {
   activeCls: string;
 }[] = [
   {
-    key: "ni",
-    label: "Needs Improvement",
-    cls: "border-error/30 text-error hover:bg-error-container/30",
-    activeCls: "bg-error-container border-error text-error",
+    key: "exceeds",
+    label: "Exceeds",
+    cls: "border-secondary/40 text-secondary hover:bg-secondary-container/30",
+    activeCls: "bg-secondary-container border-secondary text-secondary",
   },
   {
     key: "proficient",
@@ -32,10 +32,10 @@ const BTN: {
     activeCls: "bg-primary text-on-primary border-primary",
   },
   {
-    key: "exceeds",
-    label: "Exceeds",
-    cls: "border-secondary/40 text-secondary hover:bg-secondary-container/30",
-    activeCls: "bg-secondary-container border-secondary text-secondary",
+    key: "ni",
+    label: "Needs Improvement",
+    cls: "border-error/30 text-error hover:bg-error-container/30",
+    activeCls: "bg-error-container border-error text-error",
   },
 ];
 
@@ -133,24 +133,24 @@ export function CriterionCard({
 
       {open && (
         <div className="px-5 pb-5 space-y-5">
-          <div className="grid grid-cols-3 gap-px bg-outline-variant/10 rounded-sm overflow-hidden min-h-[220px] items-stretch">
-            {/* Side lanes: headers stay top-aligned; only bottom bar toggles comment */}
+          <div className="grid grid-cols-3 gap-0 rounded-sm overflow-hidden min-h-[220px] items-stretch">
+            {/* Exceeds | Proficient | Needs Improvement — same classes as pre-swap columns; data mapping unchanged */}
             <div className="bg-surface-container p-4 flex flex-col min-h-0">
-              <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-error flex-shrink-0">
-                Needs Improvement
+              <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-secondary flex-shrink-0">
+                Exceeds
               </p>
               <div className="mt-3 flex-1 flex flex-col min-h-[7rem]">
-                {ratingData.needsImprovementActive ? (
+                {ratingData.exceedsActive ? (
                   <textarea
-                    value={ratingData.needsImprovementText}
-                    onChange={(e) => setNeedsImprovementText(criterion.id, e.target.value)}
+                    value={ratingData.exceedsText}
+                    onChange={(e) => setExceedsText(criterion.id, e.target.value)}
                     placeholder="Your feedback…"
                     rows={4}
-                    className="w-full flex-1 min-h-[7rem] text-body-sm text-on-surface bg-transparent border-0 border-b border-outline-variant focus:border-secondary outline-none resize-y placeholder:text-on-surface-variant/50 transition-colors font-headline"
+                    className="w-full flex-1 min-h-[7rem] text-body-sm text-on-surface bg-transparent border-0 border-b border-secondary/40 focus:border-secondary outline-none resize-y placeholder:text-on-surface-variant/50 transition-colors font-headline"
                   />
                 ) : (
                   <div
-                    className="flex-1 min-h-[7rem] border-b border-outline-variant/20"
+                    className="flex-1 min-h-[7rem] border-b border-secondary/20"
                     aria-hidden
                   />
                 )}
@@ -174,21 +174,21 @@ export function CriterionCard({
             </button>
 
             <div className="bg-surface-container p-4 flex flex-col min-h-0">
-              <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-secondary flex-shrink-0">
-                Exceeds
+              <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-error flex-shrink-0">
+                Needs Improvement
               </p>
               <div className="mt-3 flex-1 flex flex-col min-h-[7rem]">
-                {ratingData.exceedsActive ? (
+                {ratingData.needsImprovementActive ? (
                   <textarea
-                    value={ratingData.exceedsText}
-                    onChange={(e) => setExceedsText(criterion.id, e.target.value)}
+                    value={ratingData.needsImprovementText}
+                    onChange={(e) => setNeedsImprovementText(criterion.id, e.target.value)}
                     placeholder="Your feedback…"
                     rows={4}
-                    className="w-full flex-1 min-h-[7rem] text-body-sm text-on-surface bg-transparent border-0 border-b border-secondary/40 focus:border-secondary outline-none resize-y placeholder:text-on-surface-variant/50 transition-colors font-headline"
+                    className="w-full flex-1 min-h-[7rem] text-body-sm text-on-surface bg-transparent border-0 border-b border-outline-variant focus:border-secondary outline-none resize-y placeholder:text-on-surface-variant/50 transition-colors font-headline"
                   />
                 ) : (
                   <div
-                    className="flex-1 min-h-[7rem] border-b border-secondary/20"
+                    className="flex-1 min-h-[7rem] border-b border-outline-variant/20"
                     aria-hidden
                   />
                 )}
@@ -251,14 +251,14 @@ function ActiveRatingSummary({
   };
 }) {
   const pills: { label: string; cls: string }[] = [];
-  if (r.needsImprovementActive) {
-    pills.push({ label: "NI", cls: "bg-error-container text-error" });
+  if (r.exceedsActive) {
+    pills.push({ label: "Exceeds", cls: "bg-secondary-container text-secondary" });
   }
   if (r.proficientConfirmed) {
     pills.push({ label: "Proficient", cls: "bg-primary text-on-primary" });
   }
-  if (r.exceedsActive) {
-    pills.push({ label: "Exceeds", cls: "bg-secondary-container text-secondary" });
+  if (r.needsImprovementActive) {
+    pills.push({ label: "NI", cls: "bg-error-container text-error" });
   }
   if (pills.length === 0) return null;
   return (
