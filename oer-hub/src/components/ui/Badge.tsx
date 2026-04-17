@@ -9,6 +9,10 @@ const CONFIG: Record<string, { label: string; cls: string }> = {
   submitted:    { label: "Submitted",    cls: "bg-surface-container text-on-surface-variant" },
   under_review: { label: "Under Review", cls: "bg-primary-fixed/40 text-primary" },
   in_revision:  { label: "In Revision",  cls: "bg-secondary-container/60 text-secondary" },
+  pending_verification: {
+    label: "Pending Verification",
+    cls: "bg-surface-container-high text-primary",
+  },
   certified:    { label: "Certified",    cls: "bg-[#d4f0d4] text-[#1a5c1a]" },
   available:    { label: "Available",    cls: "bg-surface-container text-on-surface-variant" },
   claimed:      { label: "Claimed",      cls: "bg-primary-fixed/40 text-primary" },

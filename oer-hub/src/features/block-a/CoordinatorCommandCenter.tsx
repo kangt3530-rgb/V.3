@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getActiveTasks } from "../../api";
 import type { ITask } from "../../api/types";
 import { Badge } from "../../components/ui/Badge";
@@ -22,6 +23,7 @@ const PIPELINE_STAGES = [
 ];
 
 export function CoordinatorCommandCenter() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<ITask[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +52,9 @@ export function CoordinatorCommandCenter() {
           </div>
           <div className="flex gap-3">
             <Button variant="secondary" size="sm" icon="manage_accounts">Assign Expert</Button>
-            <Button size="sm" icon="mediation">Mediation Queue</Button>
+            <Button size="sm" icon="mediation" onClick={() => navigate("/coordinator/mediation")}>
+              Mediation Queue
+            </Button>
           </div>
         </header>
 

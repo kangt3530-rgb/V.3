@@ -48,11 +48,12 @@ export function AuthorDashboard() {
         </header>
 
         {/* Stats strip */}
-        <div className="grid grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-10">
           {[
             { label: "Submitted",    value: oers.filter(o => o.status === "submitted").length,    color: "text-on-surface-variant" },
             { label: "Under Review", value: oers.filter(o => o.status === "under_review").length, color: "text-primary" },
             { label: "In Revision",  value: oers.filter(o => o.status === "in_revision").length,  color: "text-secondary" },
+            { label: "Pending verify", value: oers.filter(o => o.status === "pending_verification").length, color: "text-primary" },
             { label: "Certified",    value: oers.filter(o => o.status === "certified").length,    color: "text-[#1a5c1a]" },
           ].map(({ label, value, color }) => (
             <Card key={label} surface="low" shadow={false} className="p-5">
@@ -165,6 +166,12 @@ function ActionCTA({ oer }: { oer: IOer }) {
       return (
         <Link to={`/reports/${oer.id}`}>
           <Button size="sm" icon="edit_note">View Revision Cards</Button>
+        </Link>
+      );
+    case "pending_verification":
+      return (
+        <Link to={`/reports/${oer.id}`}>
+          <Button variant="secondary" size="sm" icon="hourglass_top">Verification pending</Button>
         </Link>
       );
     case "under_review":

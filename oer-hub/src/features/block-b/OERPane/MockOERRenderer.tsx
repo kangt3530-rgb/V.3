@@ -11,6 +11,8 @@ interface MockOERRendererProps {
   annotations:        IAnnotation[];
   activeAnnotationId: string | null | undefined;
   rubricTemplate?:    IRubricTemplate;
+  /** When true, disables new selections / annotation authoring (Block C report mode). */
+  readOnly?: boolean;
 }
 
 interface HighlightRect {
@@ -39,6 +41,7 @@ export function MockOERRenderer({
   annotations,
   activeAnnotationId,
   rubricTemplate,
+  readOnly = false,
 }: MockOERRendererProps) {
   const outerRef   = useRef<HTMLDivElement>(null);
   const scrollRef  = useRef<HTMLDivElement>(null);
@@ -73,6 +76,7 @@ export function MockOERRenderer({
 
   // ── Capture text selection on mouseup ─────────────────────────────────────
   function handleMouseUp(e: ReactMouseEvent<HTMLDivElement>) {
+    if (readOnly) return;
     if (pending) return;
 
     const sel = window.getSelection();
@@ -116,6 +120,7 @@ export function MockOERRenderer({
 
   // ── Virtual hover: map mouse position to annotation highlights ────────────
   function handleMouseMove(e: ReactMouseEvent<HTMLDivElement>) {
+    if (readOnly) return;
     if (selection || pending) return;
     const content = contentRef.current;
     const outer   = outerRef.current;
@@ -157,8 +162,8 @@ export function MockOERRenderer({
       <div
         ref={scrollRef}
         className="absolute inset-0 overflow-y-auto"
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleMouseMove}
+        onMouseUp={readOnly ? undefined : handleMouseUp}
+        onMouseMove={readOnly ? undefined : handleMouseMove}
         onMouseLeave={() => setHovered(null)}
       >
         {/* contentRef: position:relative, so absolute highlights anchor here */}
@@ -210,6 +215,8 @@ export function MockOERRenderer({
           id="oer-floating-toolbar"
           viewX={selection.viewX}
           viewY={selection.viewY}
+          // Toolbar positioning reads live container width; ref is stable for this paint.
+          // eslint-disable-next-line react-hooks/refs -- measured width for popover clamping
           containerWidth={outerRef.current?.offsetWidth ?? 600}
           onAnnotate={() => {
             setPending(selection);
@@ -247,7 +254,9 @@ export function MockOERRenderer({
           viewX={hovered.viewX}
           viewY={hovered.viewY}
           rubricTemplate={rubricTemplate}
+          // eslint-disable-next-line react-hooks/refs -- measured dimensions for tooltip placement
           containerWidth={outerRef.current?.offsetWidth ?? 600}
+          // eslint-disable-next-line react-hooks/refs
           containerHeight={outerRef.current?.offsetHeight ?? 400}
         />
       )}

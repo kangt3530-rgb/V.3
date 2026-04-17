@@ -95,3 +95,79 @@ body {
 .ghost-border {
   outline: 1px solid rgba(196, 198, 205, 0.15);
 }
+
+/* ── Block C: print-friendly aggregated report ── */
+@media print {
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #f4f1ea !important;
+  }
+
+  #root > .h-screen {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  main.flex-1 {
+    overflow: visible !important;
+  }
+
+  header[class*="fixed"] {
+    position: static !important;
+  }
+
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Screen report chrome hidden; printable sheet is inside #block-c-print-root */
+  .report-print-root {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    background: transparent !important;
+  }
+
+  .report-print-sheet {
+    max-width: 7.5in;
+    margin: 0 auto;
+    padding: 0.55in 0.6in 0.5in;
+    background: #ffffff;
+    color: #1c1c18;
+    border: 1px solid #c4c6cd;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .report-print-callout {
+    border-left: 4px solid #735c00;
+    padding: 0.75rem 1rem 0.75rem 1rem;
+    background: #f6f3ec;
+  }
+
+  .report-print-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .report-print-rubric-cell {
+    border: 1px solid #e5e2db;
+    border-radius: 2px;
+    padding: 0.45rem 0.5rem;
+    background: #ffffff;
+    break-inside: avoid;
+  }
+
+  .report-print-rubric-cell--focus {
+    border-color: #041627;
+    box-shadow: inset 0 0 0 1px rgba(4, 22, 39, 0.08);
+  }
+
+  .report-print-footer {
+    break-inside: avoid;
+  }
+}

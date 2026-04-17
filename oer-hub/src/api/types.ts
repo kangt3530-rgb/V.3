@@ -6,6 +6,8 @@ export type OerStatus =
   | "submitted"
   | "under_review"
   | "in_revision"
+  /** Author submitted revision summary; coordinator final check */
+  | "pending_verification"
   | "certified";
 
 export type CCLicense =
@@ -114,4 +116,106 @@ export interface IRubricTemplate {
   description: string;
   preamble: string;
   criteria: IRubricCriterion[];
+}
+
+// ─── Block C: Reports, mediation, revision, stamps ─────────────────────────
+
+/** High-level outcome shown to authors (maps from Block B toggles). */
+export type CriterionRatingSummary =
+  | "needs_improvement"
+  | "proficient"
+  | "exceeds"
+  | "mixed";
+
+export interface IOerVersion {
+  id: string;
+  oerId: string;
+  label: string;
+  createdAt: string;
+  oerType: OerType;
+  oerSource: string;
+}
+
+/** One row in the aggregated feedback report (per task × criterion). */
+export interface IAggregatedCriterionFeedback {
+  taskId: string;
+  rubricTemplateId: RubricTemplateId;
+  criterionId: string;
+  criterionTitle: string;
+  ratingSummary: CriterionRatingSummary;
+  /** Coordinator / AI synthesized text shown to author */
+  synthesizedComment: string;
+  /** Immutable reviewer evidence (read-only for author). */
+  annotations: IAnnotation[];
+}
+
+export type RevisionCardKind = "local" | "global";
+
+export interface IRevisionCard {
+  id: string;
+  oerId: string;
+  taskId: string;
+  rubricTemplateId: RubricTemplateId;
+  criterionId: string;
+  title: string;
+  kind: RevisionCardKind;
+  synthesizedFeedback: string;
+  annotationIds: string[];
+}
+
+export interface IRevisionCardProgress {
+  cardId: string;
+  resolved: boolean;
+  fixLog: string;
+  /** Pending question routed to coordinator (mock). */
+  coordinatorQuestion: string;
+}
+
+export interface IRevisionCycleState {
+  oerId: string;
+  cards: IRevisionCardProgress[];
+  summaryOfRevisions: string;
+  submittedForVerification: boolean;
+}
+
+export type MediationItemStatus = "pending" | "released";
+
+export interface IMediationItem {
+  id: string;
+  oerId: string;
+  oerTitle: string;
+  taskIds: string[];
+  status: MediationItemStatus;
+  /** Mock AI / merge layer — shown to coordinator for editing */
+  aiConsensusDraft: string;
+  /** Optional second reviewer voice for C.2 demo */
+  reviewerBConflictNote?: string;
+  /** Edited text coordinator approves */
+  coordinatorReleaseText?: string;
+  createdAt: string;
+  releasedAt?: string;
+}
+
+/** Public certification record (C.10 / C.11) — no private annotations. */
+export interface IDigitalStamp {
+  id: string;
+  oerId: string;
+  oerTitle: string;
+  subject: string;
+  authorDisplay: string;
+  license: CCLicense;
+  issuedAt: string;
+  rubricsApplied: RubricTemplateId[];
+  /** Short public summary only */
+  certificationSummary: string;
+}
+
+export interface IAggregatedReport {
+  oer: IOer;
+  releasedToAuthor: boolean;
+  /** When false, author sees placeholder until coordinator releases */
+  criteria: IAggregatedCriterionFeedback[];
+  revisionCards: IRevisionCard[];
+  anchorVersion: IOerVersion;
+  currentVersion: IOerVersion;
 }

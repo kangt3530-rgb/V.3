@@ -28,7 +28,7 @@ export function TopNav() {
     : null;
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 h-16 bg-surface-container-low">
+    <header className="print-hidden fixed top-0 inset-x-0 z-50 flex items-center justify-between px-8 h-16 bg-surface-container-low">
       {/* Left: Logo + Nav */}
       <div className="flex items-center gap-10">
         <Link to={ROLE_ROUTE[role]} className="flex items-center gap-2.5">

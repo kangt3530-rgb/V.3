@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getTask, getRubricTemplate, loadSession, hasPreambleBeenSeen } from "../../api";
+import {
+  getTask,
+  getRubricTemplate,
+  loadSession,
+  hasPreambleBeenSeen,
+  submitReviewToMediation,
+} from "../../api";
 import { useReviewStore } from "../../store/reviewStore";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import { ResizableSplitPane } from "../../components/layout/ResizableSplitPane";
@@ -25,6 +31,7 @@ export function ReviewerConsole() {
   const resetSession = useReviewStore((s) => s.resetSession);
   const setSplitRatio = useReviewStore((s) => s.setSplitRatio);
   const setStatus    = useReviewStore((s) => s.setStatus);
+  const persistSessionNow = useReviewStore((s) => s.persistSessionNow);
 
   // Mount: load task + rubric + restore draft
   useEffect(() => {
@@ -88,8 +95,22 @@ export function ReviewerConsole() {
   async function handleSubmit() {
     setIsSubmitting(true);
     setStatus("submitted");
-    // In production: POST to API, then navigate to coordinator queue
-    await new Promise((r) => setTimeout(r, 800));
+    persistSessionNow();
+    const s = useReviewStore.getState();
+    await submitReviewToMediation({
+      taskId: s.taskId,
+      oerId: s.oerId,
+      oerType: s.oerType,
+      oerSource: s.oerSource,
+      rubricTemplateId: s.rubricTemplateId,
+      annotations: s.annotations,
+      ratings: s.ratings,
+      splitRatio: s.splitRatio,
+      oerScrollY: s.oerScrollY,
+      lastSaved: new Date().toISOString(),
+      status: "submitted",
+    });
+    await new Promise((r) => setTimeout(r, 400));
     navigate("/reviewer");
   }
 
@@ -126,10 +147,11 @@ export function ReviewerConsole() {
             <span className="font-label uppercase tracking-widest">Draft</span>
           </div>
           <button
+            type="button"
             onClick={() => navigate(`/reports/${task.oer.id}`)}
             className="text-label-sm font-label font-semibold uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
           >
-            View Rubric Preamble
+            Preview author report
           </button>
         </div>
       </div>
