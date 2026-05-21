@@ -42,7 +42,6 @@ function StickyHeader({
   responses,
   onExportOpen,
   allNiHandled,
-  submitUrl,
   isReadOnly,
   submittedAt,
   onResetDemo,
@@ -51,7 +50,6 @@ function StickyHeader({
   responses: ICriterionResponse[];
   onExportOpen: () => void;
   allNiHandled: boolean;
-  submitUrl: string;
   isReadOnly: boolean;
   submittedAt: string | null;
   onResetDemo?: () => void;
@@ -401,7 +399,6 @@ export default function FeedbackReport() {
           responses={responses}
           onExportOpen={handleOpenExport}
           allNiHandled={allNiHandled}
-          submitUrl={submitUrl}
           isReadOnly={isReadOnly ?? false}
           submittedAt={submittedAt}
           onResetDemo={handleResetDemo}
