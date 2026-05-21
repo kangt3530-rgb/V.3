@@ -234,7 +234,7 @@ function ratingSummary(r: ICriterionRating | undefined): CriterionRatingSummary 
   const ni = r.needsImprovementActive;
   const ex = r.exceedsActive;
   const pf = r.proficientConfirmed;
-  if (ni && ex) return "mixed";
+  if (ni && ex) return "needs_improvement";
   if (ni) return "needs_improvement";
   if (ex) return "exceeds";
   if (pf) return "proficient";
@@ -662,4 +662,14 @@ export async function submitRevisionPackage(
   const key = `oer-hub:block-c:submission:${submission.oerId}:${submission.rubricTemplateId}`;
   writeJson(key, submission);
   setOerStatusOverride(submission.oerId, "pending_verification");
+}
+
+export function getRevisionSubmission(
+  oerId: string,
+  rubricTemplateId: RubricTemplateId
+): IRevisionSubmission | null {
+  return readJson<IRevisionSubmission | null>(
+    `oer-hub:block-c:submission:${oerId}:${rubricTemplateId}`,
+    null
+  );
 }

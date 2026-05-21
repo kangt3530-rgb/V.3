@@ -6,6 +6,7 @@ import { ReviewerTaskCenter }        from "../features/block-a/ReviewerTaskCente
 import { CoordinatorCommandCenter }  from "../features/block-a/CoordinatorCommandCenter";
 import { ReviewerConsole }           from "../features/block-b/ReviewerConsole";
 import FeedbackReport                from "../features/block-c/FeedbackReport";
+import FinalSubmission               from "../features/block-c/FinalSubmission";
 import { OerRubricList }             from "../features/block-c/OerRubricList";
 import { RubricReviewEntry }         from "../features/block-c/RubricReviewEntry";
 import { MediationQueue }            from "../features/block-c/MediationQueue";
@@ -58,7 +59,7 @@ export function AppRoutes() {
         <Route path="/reports/:oerId"                    element={<AppShell><OerRubricList /></AppShell>} />
         <Route path="/reports/:oerId/:rubricId"          element={<AppShell><RubricReviewEntry /></AppShell>} />
         <Route path="/reports/:oerId/:rubricId/read"     element={<AppShell fullScreen><FeedbackReport /></AppShell>} />
-        <Route path="/reports/:oerId/:rubricId/submit"   element={<AppShell><div className="pt-16 p-8 text-on-surface-variant">Submission review — coming soon</div></AppShell>} />
+        <Route path="/reports/:oerId/:rubricId/submit"   element={<AppShell><FinalSubmission /></AppShell>} />
 
         {/* Public validation landing (no main app chrome) */}
         <Route path="/verify/:stampId" element={<ValidationLandingPage />} />

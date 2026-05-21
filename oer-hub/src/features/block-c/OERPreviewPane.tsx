@@ -15,6 +15,22 @@ interface OERPreviewPaneProps {
 
 type Rect = { top: number; left: number; width: number; height: number };
 
+interface PopoverState {
+  annotationId: string;
+  top: number;
+  left: number;
+  expanded: boolean;
+}
+
+interface TooltipState {
+  id: string;
+  x: number;
+  y: number;
+}
+
+const POPOVER_W = 320;
+const COMMENT_TRUNCATE = 300;
+
 /**
  * Finds `selectedText` in the DOM subtree rooted at `root` using TreeWalker,
  * and returns rects in MockOERRenderer's content-div coordinate space (.max-w-2xl).
@@ -50,10 +66,41 @@ function findTextRects(root: HTMLElement, selectedText: string): Rect[] {
   return [];
 }
 
-interface TooltipState {
-  id: string;
-  x: number;
-  y: number;
+/** Compute popover position (pane-relative) anchored near the annotation's first rect. */
+function computePopoverPosition(
+  annotationId: string,
+  root: HTMLElement,
+  computedRects: Record<string, Rect[]>
+): { top: number; left: number } | null {
+  const rects = computedRects[annotationId];
+  if (!rects?.length) return null;
+  const contentEl = root.querySelector<HTMLElement>(".max-w-2xl");
+  if (!contentEl) return null;
+
+  const paneRect = root.getBoundingClientRect();
+  const contentRect = contentEl.getBoundingClientRect();
+  const r = rects[0];
+
+  // Convert first annotation rect to pane-relative coords
+  const annTopInPane = contentRect.top - paneRect.top + r.top;
+  const annRightInPane = contentRect.left - paneRect.left + r.left + r.width;
+  const annLeftInPane = contentRect.left - paneRect.left + r.left;
+
+  // Place right of highlight if it fits, otherwise left
+  const rightOf = annRightInPane + 12;
+  const fitsRight = rightOf + POPOVER_W < paneRect.width - 8;
+  const left = fitsRight
+    ? rightOf
+    : Math.max(8, annLeftInPane - POPOVER_W - 12);
+
+  // Vertically center on the annotation rect, clamped to pane
+  const POPOVER_H = 180;
+  const top = Math.max(
+    40,
+    Math.min(annTopInPane + r.height / 2 - POPOVER_H / 2, paneRect.height - POPOVER_H - 8)
+  );
+
+  return { top, left };
 }
 
 export function OERPreviewPane({
@@ -67,10 +114,9 @@ export function OERPreviewPane({
   const { viewingAnnotationId, openOerPane, closeOerPane } = useRevisionStore();
   const paneRef = useRef<HTMLDivElement>(null);
 
-  // computedRectsRef holds annotationId → content-relative rects for all annotations.
-  // Used by both MockOERRenderer (display) and the hit-test event handlers.
   const computedRectsRef = useRef<Record<string, Rect[]>>({});
   const [rectsReady, setRectsReady] = useState(false);
+  const [popover, setPopover] = useState<PopoverState | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   // Compute rects for ALL annotations once after MockOERRenderer paints
@@ -121,14 +167,22 @@ export function OERPreviewPane({
 
     function handleClick(e: MouseEvent) {
       const id = hitTest(e);
-      if (id) openOerPane(id);
+      if (!id) {
+        setPopover(null);
+        return;
+      }
+      openOerPane(id);
+      setTooltip(null);
+      const pos = computePopoverPosition(id, root!, computedRectsRef.current);
+      if (pos) setPopover({ annotationId: id, ...pos, expanded: false });
     }
 
     let hoverTimer: ReturnType<typeof setTimeout> | null = null;
     function handleMouseMove(e: MouseEvent) {
       if (hoverTimer) clearTimeout(hoverTimer);
       const id = hitTest(e);
-      if (!id) { setTooltip(null); return; }
+      // Don't show tooltip for the active annotation (popover is already available)
+      if (!id || id === viewingAnnotationId) { setTooltip(null); return; }
       hoverTimer = setTimeout(() => setTooltip({ id, x: e.clientX, y: e.clientY }), 300);
     }
     function handleMouseLeave() {
@@ -145,10 +199,21 @@ export function OERPreviewPane({
       scrollEl.removeEventListener("mouseleave", handleMouseLeave);
       if (hoverTimer) clearTimeout(hoverTimer);
     };
-  }, [rectsReady, openOerPane]);
+  }, [rectsReady, openOerPane, viewingAnnotationId]);
 
-  // All annotations with their computed rects — passed to MockOERRenderer for rendering.
-  // MockOERRenderer applies .active CSS class to the one matching activeAnnotationId.
+  // Escape closes popover first; if no popover, FeedbackReport's handler closes the pane
+  useEffect(() => {
+    if (!popover) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopImmediatePropagation();
+        setPopover(null);
+      }
+    }
+    document.addEventListener("keydown", handleKey, { capture: true });
+    return () => document.removeEventListener("keydown", handleKey, { capture: true });
+  }, [popover]);
+
   const displayAnnotations: IAnnotation[] = rectsReady
     ? annotations
         .filter((a) => computedRectsRef.current[a.id])
@@ -157,6 +222,12 @@ export function OERPreviewPane({
 
   const notFound =
     rectsReady && !!viewingAnnotationId && !computedRectsRef.current[viewingAnnotationId];
+
+  // Popover annotation + criterion data
+  const popoverAnn = popover ? annotations.find((a) => a.id === popover.annotationId) : null;
+  const popoverCrit = popoverAnn
+    ? criteria.find((c) => c.criterionId === popoverAnn.criterionId)
+    : null;
 
   return (
     <div ref={paneRef} className="relative h-full flex flex-col border-r border-outline-variant/20">
@@ -208,7 +279,69 @@ export function OERPreviewPane({
         )}
       </div>
 
-      {/* Annotation hover tooltip */}
+      {/* Click popover */}
+      {popover && popoverAnn && (
+        <div
+          className="absolute z-40 bg-white rounded-lg shadow-lg border border-outline-variant/20 p-4 space-y-3"
+          style={{ top: popover.top, left: popover.left, width: POPOVER_W }}
+        >
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-gray-700 leading-snug">
+              {popoverAnn.criterionId}
+              {popoverCrit && (
+                <span className="font-normal text-gray-500">
+                  {" · "}{popoverCrit.criterionTitle.length > 42
+                    ? popoverCrit.criterionTitle.slice(0, 42) + "…"
+                    : popoverCrit.criterionTitle}
+                </span>
+              )}
+            </p>
+            <button
+              onClick={() => setPopover(null)}
+              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors mt-0.5"
+            >
+              <span className="material-symbols-outlined text-[15px]">close</span>
+            </button>
+          </div>
+
+          {/* Comment */}
+          <div className="text-sm text-gray-600 leading-relaxed">
+            {popoverAnn.comment.length > COMMENT_TRUNCATE && !popover.expanded ? (
+              <>
+                <p>"{popoverAnn.comment.slice(0, COMMENT_TRUNCATE)}…"</p>
+                <button
+                  onClick={() => setPopover((p) => p ? { ...p, expanded: true } : p)}
+                  className="text-xs text-blue-600 hover:underline mt-1"
+                >
+                  Show more
+                </button>
+              </>
+            ) : (
+              <p>"{popoverAnn.comment}"</p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="pt-1 border-t border-gray-100">
+            <button
+              onClick={() => {
+                setPopover(null);
+                setTimeout(() => {
+                  document
+                    .getElementById(`annotation-${popoverAnn.id}`)
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 50);
+              }}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              ↗ View in report
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hover tooltip — criterion label only, not shown for active annotation */}
       {tooltip && (() => {
         const paneRect = paneRef.current?.getBoundingClientRect();
         if (!paneRect) return null;
@@ -218,16 +351,10 @@ export function OERPreviewPane({
         const ty = tooltip.y - paneRect.top - 8;
         return (
           <div
-            className="absolute z-50 pointer-events-none bg-gray-800 text-white text-xs rounded-md px-2.5 py-2 max-w-[220px] shadow-lg"
-            style={{ left: Math.min(tx, paneRect.width - 228), top: Math.max(8, ty) }}
+            className="absolute z-50 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow"
+            style={{ left: Math.min(tx, paneRect.width - 160), top: Math.max(8, ty) }}
           >
-            <p className="font-semibold truncate">
-              {ann?.criterionId} · {crit?.criterionTitle?.slice(0, 40)}
-            </p>
-            <p className="text-white/80 mt-0.5 line-clamp-2">
-              {ann?.comment?.slice(0, 80)}{(ann?.comment?.length ?? 0) > 80 ? "…" : ""}
-            </p>
-            <p className="text-white/50 mt-1">Click to view in report</p>
+            {ann?.criterionId} · {crit?.criterionTitle?.slice(0, 40)}
           </div>
         );
       })()}

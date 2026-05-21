@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import type {
   IAggregatedCriterionFeedback,
   IAnnotation,
@@ -10,12 +10,14 @@ import type {
   CriterionRatingSummary,
 } from "../../api/types";
 import { getPerRubricReport, getCriterionResponses } from "../../api";
+import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
-import { ControlledSplitPane } from "../../components/layout/ControlledSplitPane";
 import { FilterChips } from "./FilterChips";
 import { CriterionSection } from "./CriterionSection";
 import { OERPreviewPane } from "./OERPreviewPane";
+import { ExportPanel } from "./ExportPanel";
+import { AIChatbox } from "../../components/ai/AIChatbox";
 
 // ── Inline outcome dots for the compact header row ────────────────────────────
 
@@ -33,14 +35,26 @@ function statusFor(
   return responses.find((r) => r.criterionId === c.criterionId)?.status ?? "unresolved";
 }
 
-// ── Sticky header — 2 compact rows, ~88px total ───────────────────────────────
+// ── Sticky header ─────────────────────────────────────────────────────────────
 
 function StickyHeader({
   report,
   responses,
+  onExportOpen,
+  allNiHandled,
+  submitUrl,
+  isReadOnly,
+  submittedAt,
+  onResetDemo,
 }: {
   report: IPerRubricReport;
   responses: ICriterionResponse[];
+  onExportOpen: () => void;
+  allNiHandled: boolean;
+  submitUrl: string;
+  isReadOnly: boolean;
+  submittedAt: string | null;
+  onResetDemo?: () => void;
 }) {
   const criteria = report.criteria;
   const total = criteria.length;
@@ -55,7 +69,7 @@ function StickyHeader({
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: name · dots · summary · attention · export */}
+      {/* Row 1: name · dots · summary · CTA · export */}
       <div className="flex items-center gap-2 min-w-0">
         <p className="font-semibold text-sm text-primary shrink-0">{report.rubricName} Review</p>
         <span className="text-outline-variant/60 shrink-0">·</span>
@@ -71,17 +85,37 @@ function StickyHeader({
           {niCount > 0 && <> · {niCount} NI</>}
           {exceedsCount > 0 && <> · {exceedsCount} exceed</>}
         </span>
-        {attentionCount > 0 && (
+
+        {isReadOnly ? (
+          <span className="text-xs text-on-surface-variant/60 shrink-0 ml-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">mail</span>
+            Submitted for verification
+            {submittedAt && (
+              <> · {new Date(submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
+            )}
+          </span>
+        ) : allNiHandled ? (
+          <span className="text-xs text-emerald-600 shrink-0 ml-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">check_circle</span>
+            All items addressed
+          </span>
+        ) : attentionCount > 0 ? (
           <span className="text-xs text-amber-600 shrink-0 ml-1">
             {attentionCount} need attention
           </span>
-        )}
-        <div className="ml-auto shrink-0">
-          <Button size="sm" variant="ghost" icon="download">Export</Button>
+        ) : null}
+
+        <div className="ml-auto shrink-0 flex items-center gap-2">
+          {import.meta.env.DEV && onResetDemo && (
+            <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              [Reset demo]
+            </button>
+          )}
+          <Button size="sm" variant="ghost" icon="download" onClick={onExportOpen}>Export</Button>
         </div>
       </div>
 
-      {/* Row 2: filter chips (all inline) */}
+      {/* Row 2: filter chips */}
       <FilterChips criteria={criteria} responses={responses} />
     </div>
   );
@@ -95,6 +129,13 @@ export default function FeedbackReport() {
   const [report, setReport] = useState<IPerRubricReport | null>(null);
   const [responses, setResponses] = useState<ICriterionResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportPanelOpen, setExportPanelOpen] = useState(false);
+  const [aiButtonPulsing, setAiButtonPulsing] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setAiButtonPulsing(false), 3000);
+    return () => clearTimeout(t);
+  }, []);
 
   const {
     setContext,
@@ -109,7 +150,47 @@ export default function FeedbackReport() {
     oerPaneWidth,
     viewingAnnotationId,
     navigateAnnotation,
+    reportScrollPending,
+    clearReportScroll,
+    aiChatOpen,
+    toggleAiChat,
+    aiChatWidth,
+    setAiChatWidth,
+    setOerPaneWidth,
   } = useRevisionStore();
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const oerDragging = useRef(false);
+  const aiDragging = useRef(false);
+
+  const onDragMouseMove = useCallback((e: MouseEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (oerDragging.current) {
+      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      setOerPaneWidth(Math.min(50, Math.max(15, pct)));
+    }
+    if (aiDragging.current) {
+      const pct = ((rect.right - e.clientX) / rect.width) * 100;
+      setAiChatWidth(Math.min(40, Math.max(15, pct)));
+    }
+  }, [setOerPaneWidth, setAiChatWidth]);
+
+  const onDragMouseUp = useCallback(() => {
+    oerDragging.current = false;
+    aiDragging.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("mousemove", onDragMouseMove);
+    document.addEventListener("mouseup", onDragMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onDragMouseMove);
+      document.removeEventListener("mouseup", onDragMouseUp);
+    };
+  }, [onDragMouseMove, onDragMouseUp]);
 
   useEffect(() => {
     if (!oerId || !rubricId) return;
@@ -134,12 +215,10 @@ export default function FeedbackReport() {
     [allAnnotations]
   );
 
-  // Scroll report to annotation when viewingAnnotationId changes (e.g. via OER click)
-  const prevViewingRef = useRef<string | null>(null);
+  // Scroll report to annotation only when triggered by keyboard navigation
   useEffect(() => {
-    if (!viewingAnnotationId || !report) return;
-    if (viewingAnnotationId === prevViewingRef.current) return;
-    prevViewingRef.current = viewingAnnotationId;
+    if (!viewingAnnotationId || !report || !reportScrollPending) return;
+    clearReportScroll();
 
     const criterion = report.criteria.find((c) =>
       c.annotations.some((a) => a.id === viewingAnnotationId)
@@ -156,7 +235,21 @@ export default function FeedbackReport() {
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 150);
     return () => clearTimeout(t);
-  }, [viewingAnnotationId, report, collapsedCriteria, toggleCriterionCollapse]);
+  }, [viewingAnnotationId, reportScrollPending, report, collapsedCriteria, toggleCriterionCollapse, clearReportScroll]);
+
+  // Keyboard shortcut: Cmd/Ctrl + . toggles AI chat
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === ".") {
+        const tag = (document.activeElement as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        e.preventDefault();
+        handleToggleAiChat();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [aiChatOpen, exportPanelOpen]);
 
   // Keyboard navigation for OER pane
   useEffect(() => {
@@ -172,6 +265,20 @@ export default function FeedbackReport() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [oerPaneOpen, allAnnotationIds, closeOerPane, navigateAnnotation]);
 
+  const isReadOnly = report?.oer.status === "pending_verification";
+
+  const unhandledCount = useMemo(() => {
+    if (!report) return 0;
+    return report.criteria.filter(
+      c => (c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed") &&
+        (responses.find(r => r.criterionId === c.criterionId)?.status ?? "unresolved") === "unresolved"
+    ).length;
+  }, [report, responses]);
+
+  const allNiHandled = unhandledCount === 0 && (report?.criteria.some(
+    c => c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed"
+  ) ?? false);
+
   const visibleCriteria = useMemo<IAggregatedCriterionFeedback[]>(() => {
     if (!report) return [];
     if (!activeRatingFilters.length && !activeStatusFilters.length) return report.criteria;
@@ -185,6 +292,25 @@ export default function FeedbackReport() {
       return ratingOk && statusOk;
     });
   }, [report, responses, activeRatingFilters, activeStatusFilters]);
+
+  function handleResetDemo() {
+    if (!oerId || !rubricId) return;
+    localStorage.removeItem(`oer-hub:block-c:responses:${oerId}:${rubricId}`);
+    localStorage.removeItem(`oer-hub:block-c:submission:${oerId}:${rubricId}`);
+    localStorage.removeItem("oer-hub:block-c:revision-store");
+    clearOerStatusOverride(oerId);
+    window.location.reload();
+  }
+
+  function handleOpenExport() {
+    if (aiChatOpen) toggleAiChat();
+    setExportPanelOpen(true);
+  }
+
+  function handleToggleAiChat() {
+    if (exportPanelOpen) setExportPanelOpen(false);
+    toggleAiChat();
+  }
 
   function handleResponseSaved(saved: ICriterionResponse) {
     setResponses((prev) => {
@@ -209,80 +335,177 @@ export default function FeedbackReport() {
     );
   }
 
-  // Center pane — shared between open and closed layouts
-  const centerPane = (
-    <div className="flex flex-col overflow-hidden h-full min-w-0">
-      <StickyHeader report={report} responses={responses} />
-      <div className="flex-1 overflow-y-auto px-5 py-5">
-        <div className="max-w-5xl mx-auto space-y-4">
-          {visibleCriteria.map((c) => (
-            <CriterionSection
-              key={c.criterionId}
-              criterion={c}
-              response={responses.find((r) => r.criterionId === c.criterionId) ?? null}
-              rubricName={report.rubricName}
-              isCollapsed={collapsedCriteria.includes(c.criterionId)}
-              onToggleCollapse={() => toggleCriterionCollapse(c.criterionId)}
-              onViewAnnotation={(id) => openOerPane(id)}
-              onResponseSaved={handleResponseSaved}
-            />
-          ))}
+  // Read submission date if submitted
+  const submittedAt = isReadOnly
+    ? (() => {
+        try {
+          const raw = localStorage.getItem(
+            `oer-hub:block-c:submission:${oerId}:${rubricId}`
+          );
+          return raw ? (JSON.parse(raw) as { submittedAt?: string }).submittedAt ?? null : null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
 
-          {visibleCriteria.length === 0 && (
-            <p className="text-on-surface-variant text-center py-16">
-              No criteria match the active filters.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const submitUrl = `/reports/${oerId}/${rubricId}/submit`;
+  const effectiveOerWidth = oerPaneOpen && aiChatOpen ? Math.min(oerPaneWidth, 25) : oerPaneWidth;
 
   return (
-    <div className="h-full flex overflow-hidden pt-16">
+    <div ref={containerRef} className="h-full flex overflow-hidden pt-16">
 
+      {/* Left: OER pane or thin rail */}
       {oerPaneOpen ? (
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <ControlledSplitPane
-            initialRatio={oerPaneWidth / 100}
-            left={
-              <OERPreviewPane
-                annotations={allAnnotations}
-                criteria={report.criteria}
-                oerType={report.oer.oerType}
-                oerSource={report.oer.oerSource}
-              />
-            }
-            right={centerPane}
+        <div className="flex-shrink-0 h-full overflow-hidden" style={{ width: `${effectiveOerWidth}%` }}>
+          <OERPreviewPane
+            annotations={allAnnotations}
+            criteria={report.criteria}
+            oerType={report.oer.oerType}
+            oerSource={report.oer.oerSource}
           />
         </div>
       ) : (
-        <>
-          {/* Thin left rail — click opens to first annotation */}
-          <div
-            className="group flex-shrink-0 w-6 bg-stone-50 border-r border-outline-variant/15 flex items-start justify-center pt-4 cursor-pointer hover:bg-stone-100 transition-colors"
-            title="Open OER viewer"
-            onClick={() => openOerPaneOnly()}
-          >
-            <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 group-hover:text-on-surface-variant/70 transition-colors">
-              dock_to_right
-            </span>
-          </div>
-          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-            {centerPane}
-          </div>
-        </>
+        <div
+          className="group flex-shrink-0 w-6 bg-stone-50 border-r border-outline-variant/15 flex items-start justify-center pt-4 cursor-pointer hover:bg-stone-100 transition-colors"
+          title="Open OER viewer"
+          onClick={openOerPaneOnly}
+        >
+          <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 group-hover:text-on-surface-variant/70 transition-colors">
+            dock_to_right
+          </span>
+        </div>
       )}
 
-      {/* Right rail — AI chat placeholder (Phase 5) */}
-      <div
-        className="group flex-shrink-0 w-6 bg-stone-50 border-l border-outline-variant/15 flex items-start justify-center pt-4 cursor-pointer hover:bg-stone-100 transition-colors"
-        title="AI assistant — coming in Phase 5"
-      >
-        <span className="material-symbols-outlined text-[14px] text-on-surface-variant/40 group-hover:text-on-surface-variant/70 transition-colors">
-          smart_toy
-        </span>
+      {/* OER drag handle */}
+      {oerPaneOpen && (
+        <div
+          className="relative group flex-shrink-0 w-1.5 cursor-col-resize select-none z-10"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            oerDragging.current = true;
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-px h-full bg-outline-variant/20 group-hover:bg-secondary/50 transition-colors duration-150" />
+          </div>
+        </div>
+      )}
+
+      {/* Center: Report (always flex-1) */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <StickyHeader
+          report={report}
+          responses={responses}
+          onExportOpen={handleOpenExport}
+          allNiHandled={allNiHandled}
+          submitUrl={submitUrl}
+          isReadOnly={isReadOnly ?? false}
+          submittedAt={submittedAt}
+          onResetDemo={handleResetDemo}
+        />
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <div className="max-w-5xl mx-auto space-y-4">
+            {visibleCriteria.map((c) => (
+              <CriterionSection
+                key={c.criterionId}
+                criterion={c}
+                response={responses.find((r) => r.criterionId === c.criterionId) ?? null}
+                rubricName={report.rubricName}
+                isCollapsed={collapsedCriteria.includes(c.criterionId)}
+                onToggleCollapse={() => toggleCriterionCollapse(c.criterionId)}
+                onViewAnnotation={(id) => openOerPane(id)}
+                onResponseSaved={handleResponseSaved}
+                isReadOnly={isReadOnly ?? false}
+              />
+            ))}
+            {visibleCriteria.length === 0 && (
+              <p className="text-on-surface-variant text-center py-16">
+                No criteria match the active filters.
+              </p>
+            )}
+
+            {/* Bottom submit section */}
+            {!isReadOnly && (
+              <div className="pt-8 pb-4 flex flex-col items-center gap-4">
+                {allNiHandled ? (
+                  <>
+                    <p className="text-sm text-emerald-600 flex items-center gap-1.5 font-medium">
+                      <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                      All items have been addressed
+                    </p>
+                    <Link
+                      to={submitUrl}
+                      className="w-full max-w-sm flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary/90 transition-colors"
+                    >
+                      Submit for verification
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </Link>
+                  </>
+                ) : (
+                  <p className="text-sm text-on-surface-variant/60 text-center">
+                    {unhandledCount} item{unhandledCount === 1 ? "" : "s"} still need your attention before you can submit.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* AI drag handle */}
+      {aiChatOpen && (
+        <div
+          className="relative group flex-shrink-0 w-1.5 cursor-col-resize select-none z-10"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            aiDragging.current = true;
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-px h-full bg-outline-variant/20 group-hover:bg-secondary/50 transition-colors duration-150" />
+          </div>
+        </div>
+      )}
+
+      {/* Right: AI pane */}
+      {aiChatOpen && (
+        <div
+          className="flex-shrink-0 h-full overflow-hidden"
+          style={{ width: `${aiChatWidth}%`, animation: "slideInRight 200ms ease-out" }}
+        >
+          <AIChatbox
+            report={report}
+            responses={responses}
+            onClose={handleToggleAiChat}
+          />
+        </div>
+      )}
+
+      {/* Export panel overlay */}
+      {exportPanelOpen && (
+        <ExportPanel
+          report={report}
+          responses={responses}
+          onClose={() => setExportPanelOpen(false)}
+        />
+      )}
+
+      {/* Floating AI trigger button */}
+      {!aiChatOpen && (
+        <button
+          onClick={handleToggleAiChat}
+          title="AI Assistant (⌘.)"
+          className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-150 flex items-center justify-center print-hidden${aiButtonPulsing ? " animate-pulse" : ""}`}
+        >
+          <span className="material-symbols-outlined text-[22px]">smart_toy</span>
+        </button>
+      )}
+
     </div>
   );
 }

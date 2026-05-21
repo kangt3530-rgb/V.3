@@ -8,6 +8,7 @@ import { upsertCriterionResponse } from "../../api";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
 import { RatingPill } from "./RatingPill";
+import { RubricDefinitionModal } from "./RubricDefinitionModal";
 
 interface CriterionSectionProps {
   criterion: IAggregatedCriterionFeedback;
@@ -17,6 +18,7 @@ interface CriterionSectionProps {
   onToggleCollapse: () => void;
   onViewAnnotation: (annotationId: string) => void;
   onResponseSaved: (r: ICriterionResponse) => void;
+  isReadOnly?: boolean;
 }
 
 function buildDefaultResponse(
@@ -55,13 +57,17 @@ export function CriterionSection({
   onToggleCollapse,
   onViewAnnotation,
   onResponseSaved,
+  isReadOnly = false,
 }: CriterionSectionProps) {
-  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId } = useRevisionStore();
+  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId, openAiChat, aiChatCriterionId, aiChatOpen } = useRevisionStore();
   const draft = draftResponses[criterion.criterionId] ?? {};
   const criterionId = criterion.criterionId;
   const oerId = currentOerId ?? response?.oerId ?? "";
 
+  const [definitionModalOpen, setDefinitionModalOpen] = useState(false);
   const [questionInput, setQuestionInput] = useState("");
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [showNudge, setShowNudge] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -90,6 +96,15 @@ export function CriterionSection({
     const newStatus = checked ? "resolved" : "unresolved";
     updateDraftResponse(criterionId, { status: newStatus });
     saveResponse({ status: newStatus });
+
+    if (checked && !nudgeDismissed) {
+      const log = (draft.revisionLog ?? response?.revisionLog ?? "").trim();
+      if (criterion.annotations.length >= 2 && log.length < 20) {
+        setShowNudge(true);
+      }
+    } else {
+      setShowNudge(false);
+    }
   }
 
   function handleSendQuestion() {
@@ -119,11 +134,11 @@ export function CriterionSection({
   const revisionLog = draft.revisionLog ?? response?.revisionLog ?? "";
   const currentStatus = draft.status ?? response?.status ?? "unresolved";
 
-  const isNI = criterion.ratingSummary === "needs_improvement";
-  const isMixed = criterion.ratingSummary === "mixed";
-  const isExceeds = criterion.ratingSummary === "exceeds";
-  const isProficient = criterion.ratingSummary === "proficient";
-  const showAuthorBlocks = isNI || isMixed || isExceeds;
+  const displayRating = criterion.ratingSummary === "mixed" ? "needs_improvement" : criterion.ratingSummary;
+  const isNI = displayRating === "needs_improvement";
+  const isExceeds = displayRating === "exceeds";
+  const isProficient = displayRating === "proficient";
+  const showAuthorBlocks = isNI || isExceeds;
 
   return (
     <div id={`criterion-${criterion.criterionId}`} className="border border-outline-variant/20 border-l-2 border-l-outline-variant/40 rounded-r-lg overflow-hidden bg-surface-container-lowest">
@@ -154,9 +169,16 @@ export function CriterionSection({
           </span>
         </div>
         <div className="flex-shrink-0 ml-3">
-          <RatingPill summary={criterion.ratingSummary} />
+          <RatingPill summary={displayRating} />
         </div>
       </div>
+
+      <RubricDefinitionModal
+        isOpen={definitionModalOpen}
+        onClose={() => setDefinitionModalOpen(false)}
+        rubricId={criterion.rubricTemplateId}
+        criterionId={criterion.criterionId}
+      />
 
       {/* ── Expanded body ── */}
       {!isCollapsed && (
@@ -169,8 +191,17 @@ export function CriterionSection({
               {criterion.criterionStandard}
             </p>
             <div className="flex gap-4 text-xs text-on-surface-variant/60 mt-0.5">
-              <button className="hover:text-primary transition-colors">Read full definition</button>
-              <button className="hover:text-primary transition-colors">💬 Ask AI</button>
+              <button onClick={() => setDefinitionModalOpen(true)} className="hover:text-primary transition-colors">Read full definition</button>
+              <button
+                onClick={() => openAiChat(criterion.criterionId)}
+                className={`hover:text-primary transition-colors ${
+                  aiChatOpen && aiChatCriterionId === criterion.criterionId
+                    ? "text-primary font-medium"
+                    : ""
+                }`}
+              >
+                💬 Ask AI{aiChatOpen && aiChatCriterionId === criterion.criterionId ? " (active)" : ""}
+              </button>
             </div>
           </div>
 
@@ -179,14 +210,9 @@ export function CriterionSection({
             <div className="space-y-1.5">
               <p className={SECTION_LABEL}>Reviewer&rsquo;s Overall Comment</p>
               <div className="bg-amber-50/70 rounded-md p-3 border-l-2 border-amber-300">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-[9px] text-amber-600 font-semibold mt-0.5 flex-shrink-0 tracking-wider">
-                    🌐 GLOBAL
-                  </span>
-                  <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
-                    {criterion.overallComment}
-                  </p>
-                </div>
+                <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                  {criterion.overallComment}
+                </p>
               </div>
             </div>
           )}
@@ -253,13 +279,14 @@ export function CriterionSection({
                 placeholder="Leave any notes about your revisions or thoughts on this feedback..."
                 value={revisionLog}
                 onChange={(e) => handleRevisionLogChange(e.target.value)}
-                className={`${AUTHOR_INPUT} resize-none`}
+                disabled={isReadOnly}
+                className={`${AUTHOR_INPUT} resize-none ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}
               />
             </div>
           )}
 
-          {/* Block 5: Ask coordinator (not Proficient) */}
-          {showAuthorBlocks && !isProficient && (
+          {/* Block 5: Ask coordinator (hidden in read-only unless a question exists) */}
+          {showAuthorBlocks && !isProficient && (!isReadOnly || coordinatorQuestion) && (
             <div className="space-y-1.5">
               <p className={SECTION_LABEL}>Ask Coordinator</p>
 
@@ -341,17 +368,34 @@ export function CriterionSection({
           )}
 
           {/* Block 6: Mark resolved (NI and Mixed only) */}
-          {(isNI || isMixed) && (
-            <div className="pt-3 border-t border-outline-variant/15 flex justify-end items-center">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-on-surface-variant/70 select-none">
-                <input
-                  type="checkbox"
-                  checked={currentStatus === "resolved"}
-                  onChange={(e) => handleToggleResolved(e.target.checked)}
-                  className="rounded border-outline-variant accent-primary w-3.5 h-3.5"
-                />
-                Mark resolved
-              </label>
+          {isNI && (
+            <div className="pt-3 border-t border-outline-variant/15">
+              <div className="flex justify-end items-center">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-on-surface-variant/70 select-none">
+                  <input
+                    type="checkbox"
+                    checked={currentStatus === "resolved"}
+                    onChange={(e) => handleToggleResolved(e.target.checked)}
+                    disabled={isReadOnly}
+                    className={`rounded border-outline-variant accent-primary w-3.5 h-3.5 ${isReadOnly ? "cursor-not-allowed opacity-60" : ""}`}
+                  />
+                  Mark resolved
+                </label>
+              </div>
+              {showNudge && !nudgeDismissed && (
+                <div className="mt-2 bg-amber-50 rounded-md px-3 py-2 text-xs text-amber-800 flex items-start gap-2">
+                  <span className="flex-shrink-0">💡</span>
+                  <p className="flex-1">
+                    The reviewer raised {criterion.annotations.length} specific points on this criterion. Consider adding notes about how you addressed them in your revision log.
+                  </p>
+                  <button
+                    onClick={() => { setShowNudge(false); setNudgeDismissed(true); }}
+                    className="flex-shrink-0 text-amber-600 hover:text-amber-800"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

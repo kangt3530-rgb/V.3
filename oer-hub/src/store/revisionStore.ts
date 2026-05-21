@@ -26,6 +26,8 @@ interface RevisionStoreState {
 
   // AI chatbox
   aiChatOpen: boolean;
+  aiChatCriterionId: string | null;
+  aiChatWidth: number; // percentage, default 25
 
   // Per-criterion draft responses (before saving to API), keyed by criterionId
   draftResponses: Record<string, Partial<ICriterionResponse>>;
@@ -41,7 +43,11 @@ interface RevisionStoreState {
   closeOerPane: () => void;
   setOerPaneWidth: (width: number) => void;
   navigateAnnotation: (direction: "prev" | "next", allAnnotationIds: string[]) => void;
+  reportScrollPending: boolean;
+  clearReportScroll: () => void;
   toggleAiChat: () => void;
+  openAiChat: (criterionId?: string) => void;
+  setAiChatWidth: (width: number) => void;
   updateDraftResponse: (criterionId: string, partial: Partial<ICriterionResponse>) => void;
 }
 
@@ -57,6 +63,9 @@ export const useRevisionStore = create<RevisionStoreState>()(
       oerPaneWidth: 35,
       viewingAnnotationId: null,
       aiChatOpen: false,
+      aiChatCriterionId: null,
+      aiChatWidth: 25,
+      reportScrollPending: false,
       draftResponses: {},
 
       setContext: (oerId, rubricId) => {
@@ -122,11 +131,23 @@ export const useRevisionStore = create<RevisionStoreState>()(
         } else {
           next = idx > 0 ? idx - 1 : allAnnotationIds.length - 1;
         }
-        set({ viewingAnnotationId: allAnnotationIds[next] });
+        set({ viewingAnnotationId: allAnnotationIds[next], reportScrollPending: true });
+      },
+
+      clearReportScroll: () => {
+        set({ reportScrollPending: false });
       },
 
       toggleAiChat: () => {
         set((s) => ({ aiChatOpen: !s.aiChatOpen }));
+      },
+
+      openAiChat: (criterionId) => {
+        set({ aiChatOpen: true, aiChatCriterionId: criterionId ?? null });
+      },
+
+      setAiChatWidth: (width) => {
+        set({ aiChatWidth: width });
       },
 
       updateDraftResponse: (criterionId, partial) => {

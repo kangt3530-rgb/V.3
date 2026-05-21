@@ -85,6 +85,12 @@ body {
   transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── AI chatbox slide-in ── */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* ── Input: gold underline on focus (DESIGN.md) ── */
 .input-underline {
   @apply bg-transparent border-0 border-b-2 border-outline-variant outline-none
