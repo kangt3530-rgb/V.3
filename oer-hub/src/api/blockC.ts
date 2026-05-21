@@ -1,22 +1,20 @@
 /**
- * Block C — Aggregated reports, mediation queue, revision cycle, stamps.
+ * Block C — Per-rubric reports, mediation queue, author responses, stamps.
  * Mock persistence via localStorage; replace with HTTP in production.
  */
 
 import type {
   IAggregatedCriterionFeedback,
-  IAggregatedReport,
+  IPerRubricReport,
   IAnnotation,
   ICriterionRating,
+  ICriterionResponse,
+  IRevisionSubmission,
   IDigitalStamp,
   IMediationItem,
   IOer,
   IOerVersion,
-  IRevisionCard,
-  IRevisionCardProgress,
-  IRevisionCycleState,
   IReviewSession,
-  IRubricCriterion,
   IRubricTemplate,
   RubricTemplateId,
   CriterionRatingSummary,
@@ -27,7 +25,6 @@ import { loadSession } from "./sessionStorage";
 
 const LS_OER_STATUS = "oer-hub:mock:oer-status-overrides";
 const LS_MEDIATION = "oer-hub:block-c:mediation-items";
-const LS_REVISION = "oer-hub:block-c:revision-cycle";
 const LS_STAMPS = "oer-hub:block-c:digital-stamps";
 
 function readJson<T>(key: string, fallback: T): T {
@@ -81,128 +78,14 @@ export function getTasksForOer(oerId: string) {
   return allTasks().filter((t) => t.oerId === oerId);
 }
 
+// ── Mediation queue ───────────────────────────────────────────────────────────
+
 function readMediationItems(): IMediationItem[] {
   return readJson<IMediationItem[]>(LS_MEDIATION, []);
 }
 
 function writeMediationItems(items: IMediationItem[]) {
   writeJson(LS_MEDIATION, items);
-}
-
-function readStamps(): IDigitalStamp[] {
-  return readJson<IDigitalStamp[]>(LS_STAMPS, []);
-}
-
-function writeStamps(stamps: IDigitalStamp[]) {
-  writeJson(LS_STAMPS, stamps);
-}
-
-function readRevisionState(): Record<string, IRevisionCycleState> {
-  return readJson(LS_REVISION, {} as Record<string, IRevisionCycleState>);
-}
-
-function writeRevisionState(map: Record<string, IRevisionCycleState>) {
-  writeJson(LS_REVISION, map);
-}
-
-export function getRevisionCycleState(oerId: string): IRevisionCycleState | null {
-  return readRevisionState()[oerId] ?? null;
-}
-
-export function upsertRevisionCycleState(oerId: string, partial: Partial<IRevisionCycleState>) {
-  const map = readRevisionState();
-  const cur: IRevisionCycleState = map[oerId] ?? {
-    oerId,
-    cards: [],
-    summaryOfRevisions: "",
-    submittedForVerification: false,
-  };
-  map[oerId] = { ...cur, ...partial, oerId };
-  writeRevisionState(map);
-}
-
-export function ensureRevisionCardsInitialized(oerId: string, cards: IRevisionCard[]) {
-  const map = readRevisionState();
-  if (map[oerId]?.cards?.length) return;
-  upsertRevisionCycleState(oerId, {
-    cards: cards.map((c) => ({
-      cardId: c.id,
-      resolved: false,
-      fixLog: "",
-      coordinatorQuestion: "",
-    })),
-  });
-}
-
-export function submitAuthorRevisionPackage(oerId: string, summary: string) {
-  upsertRevisionCycleState(oerId, {
-    summaryOfRevisions: summary,
-    submittedForVerification: true,
-  });
-  setOerStatusOverride(oerId, "pending_verification");
-}
-
-export function getOersPendingVerification(): IOer[] {
-  return getMergedOers().filter((o) => o.status === "pending_verification");
-}
-
-export function setRevisionCardProgress(
-  oerId: string,
-  cardId: string,
-  progress: Partial<IRevisionCardProgress>
-) {
-  const map = readRevisionState();
-  const cur: IRevisionCycleState = map[oerId] ?? {
-    oerId,
-    cards: [],
-    summaryOfRevisions: "",
-    submittedForVerification: false,
-  };
-  const idx = cur.cards.findIndex((c) => c.cardId === cardId);
-  const existing = idx >= 0 ? cur.cards[idx] : undefined;
-  const next: IRevisionCardProgress = {
-    cardId,
-    resolved: false,
-    fixLog: "",
-    coordinatorQuestion: "",
-    ...existing,
-    ...progress,
-  };
-  const cards =
-    idx >= 0
-      ? cur.cards.map((c, i) => (i === idx ? next : c))
-      : [...cur.cards, next];
-  map[oerId] = { ...cur, cards };
-  writeRevisionState(map);
-}
-
-/** Seed certified stamp for oer-003 if none exists (demo). */
-export function ensureSeedStamps() {
-  const stamps = readStamps();
-  if (stamps.some((s) => s.oerId === "oer-003")) return;
-  stamps.push({
-    id: "stamp-demo-macro-2026",
-    oerId: "oer-003",
-    oerTitle: "Principles of Macroeconomics",
-    subject: "Economics",
-    authorDisplay: "Dr. Sarah Chen",
-    license: "CC BY",
-    issuedAt: "2026-02-28T16:00:00Z",
-    rubricsApplied: ["copyright", "disciplinary", "accessibility"],
-    certificationSummary:
-      "This resource met proficiency across selected rubric areas via peer review on the OER Certification Hub.",
-  });
-  writeStamps(stamps);
-}
-
-export function getStampById(stampId: string): IDigitalStamp | null {
-  ensureSeedStamps();
-  return readStamps().find((s) => s.id === stampId) ?? null;
-}
-
-export function getStampForOer(oerId: string): IDigitalStamp | null {
-  ensureSeedStamps();
-  return readStamps().find((s) => s.oerId === oerId) ?? null;
 }
 
 export function getMediationQueue(): IMediationItem[] {
@@ -213,29 +96,6 @@ export function getMediationItem(id: string): IMediationItem | null {
   return readMediationItems().find((m) => m.id === id) ?? null;
 }
 
-function buildAiConsensusDraft(session: IReviewSession, rubricName: string): string {
-  const ni = Object.entries(session.ratings).filter(
-    ([, r]) => r.needsImprovementActive
-  );
-  const ex = Object.entries(session.ratings).filter(([, r]) => r.exceedsActive);
-  const lines: string[] = [];
-  lines.push(
-    `[AI synthesis — ${rubricName}] Cross-checked reviewer annotations and ratings for this submission.`
-  );
-  if (ni.length) {
-    lines.push(
-      `• ${ni.length} criterion/criteria flagged for improvement; mapped to evidence highlights where present.`
-    );
-  }
-  if (ex.length) {
-    lines.push(`• ${ex.length} criterion/criteria noted as exemplary strengths.`);
-  }
-  lines.push(
-    "No contradictory reviewer pair was detected in this mock (single reviewer). When multiple reviewers disagree, a Consensus Card would merge opposing notes here."
-  );
-  return lines.join("\n");
-}
-
 /** Called when reviewer finalizes — pushes coordinator queue + freezes session. */
 export async function submitReviewToMediation(session: IReviewSession): Promise<void> {
   const oer = getOerById(session.oerId);
@@ -243,7 +103,14 @@ export async function submitReviewToMediation(session: IReviewSession): Promise<
 
   const rubricModule = await import(`../data/rubrics/${session.rubricTemplateId}.json`);
   const rubric = rubricModule.default as IRubricTemplate;
-  const draft = buildAiConsensusDraft(session, rubric.name);
+  const niCount = Object.values(session.ratings).filter((r) => r.needsImprovementActive).length;
+  const exCount = Object.values(session.ratings).filter((r) => r.exceedsActive).length;
+  const draft = [
+    `[AI synthesis — ${rubric.name}] Cross-checked reviewer annotations and ratings for this submission.`,
+    niCount ? `• ${niCount} criterion/criteria flagged for improvement; mapped to evidence highlights where present.` : null,
+    exCount ? `• ${exCount} criterion/criteria noted as exemplary strengths.` : null,
+    "No contradictory reviewer pair was detected in this mock (single reviewer). When multiple reviewers disagree, a Consensus Card would merge opposing notes here.",
+  ].filter(Boolean).join("\n");
 
   const items = readMediationItems();
   const id = `med-${session.taskId}-${Date.now()}`;
@@ -292,338 +159,46 @@ export async function releaseMediationToAuthor(itemId: string): Promise<void> {
   );
   writeMediationItems(next);
 
-  setOerStatusOverride(item.oerId, "in_revision");
+  setOerStatusOverride(item.oerId, "feedback_available");
 }
 
-function ratingSummary(r: ICriterionRating | undefined): CriterionRatingSummary {
-  if (!r) return "proficient";
-  const ni = r.needsImprovementActive;
-  const ex = r.exceedsActive;
-  const pf = r.proficientConfirmed;
-  if (ni && ex) return "mixed";
-  if (ni) return "needs_improvement";
-  if (ex) return "exceeds";
-  if (pf) return "proficient";
-  return "proficient";
+// ── Digital stamps ────────────────────────────────────────────────────────────
+
+function readStamps(): IDigitalStamp[] {
+  return readJson<IDigitalStamp[]>(LS_STAMPS, []);
 }
 
-function synthesizedTextForCriterion(
-  criterion: IRubricCriterion,
-  r: ICriterionRating | undefined
-): string {
-  if (!r) return criterion.standard;
-  const parts: string[] = [];
-  if (r.needsImprovementActive && r.needsImprovementText.trim()) {
-    parts.push(`Needs improvement: ${r.needsImprovementText.trim()}`);
-  }
-  if (r.exceedsActive && r.exceedsText.trim()) {
-    parts.push(`Strengths: ${r.exceedsText.trim()}`);
-  }
-  if (r.proficientConfirmed && parts.length === 0) {
-    parts.push("Marked as meeting the standard for this criterion.");
-  }
-  if (parts.length === 0) return criterion.standard;
-  return parts.join("\n\n");
+function writeStamps(stamps: IDigitalStamp[]) {
+  writeJson(LS_STAMPS, stamps);
 }
 
-function annotationsForCriterion(
-  session: IReviewSession,
-  criterionId: string
-): IAnnotation[] {
-  return session.annotations.filter((a) => a.criterionId === criterionId);
-}
-
-function buildVersions(oer: IOer): { current: IOerVersion; anchor: IOerVersion } {
-  const anchor: IOerVersion = {
-    id: `${oer.id}-v1`,
-    oerId: oer.id,
-    label: "1.0",
-    createdAt: oer.submittedAt,
-    oerType: oer.oerType,
-    oerSource: oer.oerSource,
-  };
-  const current: IOerVersion = {
-    id: `${oer.id}-v-current`,
-    oerId: oer.id,
-    label: oer.status === "in_revision" ? "1.1 (draft)" : "1.0",
-    createdAt: oer.updatedAt,
-    oerType: oer.oerType,
-    oerSource: oer.oerSource,
-  };
-  return { current, anchor };
-}
-
-/**
- * Rich demo session for `/reports/oer-001` when no submitted session is in localStorage.
- * To reset to this dataset, remove key `oer-hub:session:v3:task-001` in DevTools → Application.
- */
-function demoSessionForOer001(): IReviewSession {
-  return {
-    taskId: "task-001",
-    oerId: "oer-001",
-    oerType: "mock",
-    oerSource: "mock://quantum-mechanics",
-    rubricTemplateId: "accessibility",
-    annotations: [
-      {
-        id: "ann-demo-1",
-        taskId: "task-001",
-        criterionId: "C1",
-        comment:
-          "Opening chapter skips from H1 to H3; add an H2 for screen reader outline. Decorative headings detected on p. 4.",
-        createdAt: "2026-03-22T11:00:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Chapter 1: Wave–particle duality",
-          rects: [{ top: 180, left: 64, width: 280, height: 22 }],
-        },
-      },
-      {
-        id: "ann-demo-2",
-        taskId: "task-001",
-        criterionId: "C2",
-        comment:
-          "Figure 2 caption uses light gray (#c8c8c8) on white (~2.8:1). Increase contrast or darken caption text to meet AA.",
-        createdAt: "2026-03-22T11:05:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Figure 2 — Probability density",
-          rects: [{ top: 320, left: 64, width: 240, height: 20 }],
-        },
-      },
-      {
-        id: "ann-demo-3",
-        taskId: "task-001",
-        criterionId: "C3",
-        comment:
-          "Diagram 1.3 uses filename as alt text (\"fig13.png\"). Replace with a concise description of the double-slit setup and outcomes.",
-        createdAt: "2026-03-22T11:12:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Double-slit experiment schematic",
-          rects: [{ top: 520, left: 64, width: 300, height: 20 }],
-        },
-      },
-      {
-        id: "ann-demo-4",
-        taskId: "task-001",
-        criterionId: "C4",
-        comment:
-          "Embedded lecture clip has auto-generated captions with frequent errors for technical terms (e.g., \"de Broglie\"). Provide edited captions or a verbatim transcript.",
-        createdAt: "2026-03-22T11:18:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Watch: Introduction to matter waves (12:40)",
-          rects: [{ top: 720, left: 64, width: 340, height: 20 }],
-        },
-      },
-      {
-        id: "ann-demo-5",
-        taskId: "task-001",
-        criterionId: "C5",
-        comment:
-          "Inline quiz radio buttons are not reachable via Tab order; focus ring is suppressed in CSS. Restore visible focus and logical tab sequence.",
-        createdAt: "2026-03-22T11:24:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Quick check: Which statement best describes wave–particle duality?",
-          rects: [{ top: 900, left: 64, width: 420, height: 22 }],
-        },
-      },
-      {
-        id: "ann-demo-6",
-        taskId: "task-001",
-        criterionId: "C6",
-        comment:
-          "Table 4.1 uses merged cells without scope; screen readers announce row/column relationships inconsistently. Add scoped <th> or simplify layout.",
-        createdAt: "2026-03-22T11:30:00Z",
-        anchor: {
-          type: "web",
-          selectedText: "Table 4.1 — Commonly used quantum symbols",
-          rects: [{ top: 1120, left: 64, width: 360, height: 20 }],
-        },
-      },
-    ],
-    ratings: {
-      C1: {
-        needsImprovementActive: true,
-        exceedsActive: false,
-        proficientConfirmed: false,
-        needsImprovementText:
-          "Chapter 1 jumps from H1 to H3; add intermediate H2s. Landmark regions are missing on several templates. Reading order in the two-column layout does not match visual order in one sidebar block.",
-        exceedsText: "",
-      },
-      C2: {
-        needsImprovementActive: false,
-        exceedsActive: false,
-        proficientConfirmed: true,
-        needsImprovementText: "",
-        exceedsText: "",
-      },
-      C3: {
-        needsImprovementActive: true,
-        exceedsActive: false,
-        proficientConfirmed: false,
-        needsImprovementText:
-          "Several informative images use filenames or empty alt. Complex diagrams lack extended descriptions; add a short paragraph alternative adjacent to each figure.",
-        exceedsText: "",
-      },
-      C4: {
-        needsImprovementActive: true,
-        exceedsActive: false,
-        proficientConfirmed: false,
-        needsImprovementText:
-          "Primary video relies on auto captions with technical errors. Provide edited captions and a downloadable transcript with timestamps.",
-        exceedsText: "",
-      },
-      C5: {
-        needsImprovementActive: true,
-        exceedsActive: true,
-        proficientConfirmed: false,
-        needsImprovementText:
-          "Some interactive widgets are not fully keyboard-operable and focus styles are suppressed. Error messages for the practice quiz rely on color alone.",
-        exceedsText:
-          "Where interactions work, microcopy is clear and hints are helpful; glossary tooltips are a strong inclusive touch.",
-      },
-      C6: {
-        needsImprovementActive: false,
-        exceedsActive: true,
-        proficientConfirmed: false,
-        needsImprovementText: "",
-        exceedsText:
-          "Data tables include captions and scoped headers; complex table includes a summary paragraph. Excellent alignment with accessible data presentation practices.",
-      },
-      C7: {
-        needsImprovementActive: true,
-        exceedsActive: false,
-        proficientConfirmed: false,
-        needsImprovementText:
-          "Across the manuscript, external links often read as \"click here\" or duplicate \"read more\" while pointing to different destinations. Add unique, descriptive link phrases and note when links open a new window.",
-        exceedsText: "",
-      },
-      C8: {
-        needsImprovementActive: false,
-        exceedsActive: false,
-        proficientConfirmed: true,
-        needsImprovementText: "",
-        exceedsText: "",
-      },
-    },
-    splitRatio: 0.65,
-    oerScrollY: 0,
-    lastSaved: new Date().toISOString(),
-    status: "submitted",
-  };
-}
-
-function revisionCardId(oerId: string, taskId: string, rubricId: RubricTemplateId, criterionId: string) {
-  return `${oerId}::${taskId}::${rubricId}::${criterionId}`;
-}
-
-function buildRevisionCards(
-  oerId: string,
-  taskId: string,
-  rubricId: RubricTemplateId,
-  criteria: IAggregatedCriterionFeedback[],
-  criterionMeta: Map<string, IRubricCriterion>
-): IRevisionCard[] {
-  const cards: IRevisionCard[] = [];
-  for (const row of criteria) {
-    if (row.ratingSummary !== "needs_improvement" && row.ratingSummary !== "mixed") continue;
-    const anns = row.annotations;
-    const hasAnchor = anns.some((a) => (a.anchor.rects?.length ?? 0) > 0);
-    const kind: IRevisionCard["kind"] = hasAnchor ? "local" : "global";
-    const crit = criterionMeta.get(row.criterionId);
-    cards.push({
-      id: revisionCardId(oerId, taskId, rubricId, row.criterionId),
-      oerId,
-      taskId,
-      rubricTemplateId: rubricId,
-      criterionId: row.criterionId,
-      title: crit?.title ?? row.criterionTitle,
-      kind,
-      synthesizedFeedback: row.synthesizedComment,
-      annotationIds: anns.map((a) => a.id),
-    });
-  }
-  return cards;
-}
-
-export async function getAggregatedReport(oerId: string): Promise<IAggregatedReport | null> {
-  const oer = getOerById(oerId);
-  if (!oer) return null;
-
-  const tasks = getTasksForOer(oerId);
-  const released =
-    oer.status === "in_revision" ||
-    oer.status === "pending_verification" ||
-    oer.status === "certified";
-
-  const { current, anchor } = buildVersions(oer);
-
-  if (!released) {
-    return {
-      oer,
-      releasedToAuthor: false,
-      criteria: [],
-      revisionCards: [],
-      anchorVersion: anchor,
-      currentVersion: current,
-    };
-  }
-
-  const primaryTask = tasks[0];
-  const taskId = primaryTask?.id ?? "task-001";
-  let session = loadSession(taskId);
-
-  if (oerId === "oer-001" && (!session || session.status !== "submitted")) {
-    session = demoSessionForOer001();
-  }
-
-  if (!session) {
-    return {
-      oer,
-      releasedToAuthor: true,
-      criteria: [],
-      revisionCards: [],
-      anchorVersion: anchor,
-      currentVersion: current,
-    };
-  }
-
-  const rubricModule = await import(`../data/rubrics/${session.rubricTemplateId}.json`);
-  const rubric = rubricModule.default as IRubricTemplate;
-  const meta = new Map(rubric.criteria.map((c) => [c.id, c]));
-
-  const criteriaRows: IAggregatedCriterionFeedback[] = rubric.criteria.map((c) => {
-    const r = session.ratings[c.id];
-    return {
-      taskId: session.taskId,
-      rubricTemplateId: session.rubricTemplateId,
-      criterionId: c.id,
-      criterionTitle: c.title,
-      ratingSummary: ratingSummary(r),
-      synthesizedComment: synthesizedTextForCriterion(c, r),
-      annotations: annotationsForCriterion(session, c.id).map((a) => ({ ...a })),
-    };
+/** Seed certified stamp for oer-003 if none exists (demo). */
+export function ensureSeedStamps() {
+  const stamps = readStamps();
+  if (stamps.some((s) => s.oerId === "oer-003")) return;
+  stamps.push({
+    id: "stamp-demo-macro-2026",
+    oerId: "oer-003",
+    oerTitle: "Principles of Macroeconomics",
+    subject: "Economics",
+    authorDisplay: "Dr. Sarah Chen",
+    license: "CC BY",
+    issuedAt: "2026-02-28T16:00:00Z",
+    rubricsApplied: ["copyright", "disciplinary", "accessibility"],
+    certificationSummary:
+      "This resource met proficiency across selected rubric areas via peer review on the OER Certification Hub.",
   });
+  writeStamps(stamps);
+}
 
-  const revisionCards = buildRevisionCards(
-    oerId,
-    session.taskId,
-    session.rubricTemplateId,
-    criteriaRows,
-    meta
-  );
+export function getStampById(stampId: string): IDigitalStamp | null {
+  ensureSeedStamps();
+  return readStamps().find((s) => s.id === stampId) ?? null;
+}
 
-  return {
-    oer,
-    releasedToAuthor: true,
-    criteria: criteriaRows,
-    revisionCards,
-    anchorVersion: anchor,
-    currentVersion: current,
-  };
+export function getStampForOer(oerId: string): IDigitalStamp | null {
+  ensureSeedStamps();
+  return readStamps().find((s) => s.oerId === oerId) ?? null;
 }
 
 export async function approveAuthorRevisions(oerId: string): Promise<IDigitalStamp | null> {
@@ -646,4 +221,445 @@ export async function approveAuthorRevisions(oerId: string): Promise<IDigitalSta
   writeStamps(stamps);
   setOerStatusOverride(oerId, "certified");
   return stamp;
+}
+
+export function getOersPendingVerification(): IOer[] {
+  return getMergedOers().filter((o) => o.status === "pending_verification");
+}
+
+// ── Rating helpers ────────────────────────────────────────────────────────────
+
+function ratingSummary(r: ICriterionRating | undefined): CriterionRatingSummary {
+  if (!r) return "proficient";
+  const ni = r.needsImprovementActive;
+  const ex = r.exceedsActive;
+  const pf = r.proficientConfirmed;
+  if (ni && ex) return "mixed";
+  if (ni) return "needs_improvement";
+  if (ex) return "exceeds";
+  if (pf) return "proficient";
+  return "proficient";
+}
+
+function overallCommentForCriterion(r: ICriterionRating | undefined): string {
+  if (!r) return "";
+  const parts: string[] = [];
+  if (r.needsImprovementActive && r.needsImprovementText.trim()) {
+    parts.push(r.needsImprovementText.trim());
+  }
+  if (r.exceedsActive && r.exceedsText.trim()) {
+    parts.push(r.exceedsText.trim());
+  }
+  if (parts.length === 0 && r.proficientConfirmed) {
+    return "This criterion meets the standard.";
+  }
+  return parts.join("\n\n");
+}
+
+function annotationsForCriterion(
+  session: IReviewSession,
+  criterionId: string
+): IAnnotation[] {
+  return session.annotations.filter((a) => a.criterionId === criterionId);
+}
+
+function buildVersions(oer: IOer): { current: IOerVersion; anchor: IOerVersion } {
+  const anchor: IOerVersion = {
+    id: `${oer.id}-v1`,
+    oerId: oer.id,
+    label: "1.0",
+    createdAt: oer.submittedAt,
+    oerType: oer.oerType,
+    oerSource: oer.oerSource,
+  };
+  const current: IOerVersion = {
+    id: `${oer.id}-v-current`,
+    oerId: oer.id,
+    label: oer.status === "feedback_available" ? "1.1 (draft)" : "1.0",
+    createdAt: oer.updatedAt,
+    oerType: oer.oerType,
+    oerSource: oer.oerSource,
+  };
+  return { current, anchor };
+}
+
+// ── Demo session ──────────────────────────────────────────────────────────────
+
+/**
+ * Rich demo session for oer-001 (accessibility rubric) when no submitted session
+ * is in localStorage. Reset by removing `oer-hub:session:v3:task-001` in DevTools.
+ */
+function demoSessionForOer001(): IReviewSession {
+  return {
+    taskId: "task-001",
+    oerId: "oer-001",
+    oerType: "mock",
+    oerSource: "mock://quantum-mechanics",
+    rubricTemplateId: "accessibility",
+    annotations: [
+      // C1 — needs_improvement (3 annotations → negative polarity)
+      // selectedText values match actual text in MockOERRenderer's OERContent component
+      {
+        id: "ann-demo-1",
+        taskId: "task-001",
+        criterionId: "C1",
+        comment:
+          "Opening chapter skips from H1 to H3; insert an H2 for the screen reader document outline. Decorative headings detected on p. 4.",
+        createdAt: "2026-03-22T11:00:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Wave–Particle Duality and Quantum Uncertainty",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-1b",
+        taskId: "task-001",
+        criterionId: "C1",
+        comment:
+          "The learning objectives section has no landmark role. Screen readers cannot jump directly to key sections without a skip-navigation link or ARIA landmark.",
+        createdAt: "2026-03-22T11:02:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Learning Objectives",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-1c",
+        taskId: "task-001",
+        criterionId: "C1",
+        comment:
+          "The paragraph introduces both wave and particle concepts in the same sentence without visual separation. DOM reading order may not match intended instructional flow for AT users.",
+        createdAt: "2026-03-22T11:04:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "The foundations of quantum mechanics challenge our classical intuitions about the nature of matter and light.",
+          rects: [],
+        },
+      },
+      // C2 — proficient (1 annotation)
+      {
+        id: "ann-demo-2",
+        taskId: "task-001",
+        criterionId: "C2",
+        comment:
+          "Figure 3.1 caption text uses a reduced-contrast gray on the beige background (~3.1:1). Darken the caption to meet WCAG AA (4.5:1 for small text).",
+        createdAt: "2026-03-22T11:05:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Figure 3.1",
+          rects: [],
+        },
+      },
+      // C3 — needs_improvement (3 annotations → negative polarity)
+      {
+        id: "ann-demo-3",
+        taskId: "task-001",
+        criterionId: "C3",
+        comment:
+          "The figure placeholder uses a generic icon with no alt text or aria-label. Replace with a descriptive alternative explaining the interference pattern shown.",
+        createdAt: "2026-03-22T11:12:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Electron double-slit interference pattern.",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-3b",
+        taskId: "task-001",
+        criterionId: "C3",
+        comment:
+          "This paragraph introduces the double-slit result without a text description of the interference pattern figure above it. Students using screen readers cannot access the visual.",
+        createdAt: "2026-03-22T11:13:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "The double-slit experiment is perhaps the most profound demonstration of quantum behavior.",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-3c",
+        taskId: "task-001",
+        criterionId: "C3",
+        comment:
+          "The \"Key Insight\" callout uses a decorative border and color cue without an accessible role or label. Screen readers will read it as a plain paragraph with no structural context.",
+        createdAt: "2026-03-22T11:14:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Key Insight",
+          rects: [],
+        },
+      },
+      // C4 — needs_improvement (1 annotation)
+      {
+        id: "ann-demo-4",
+        taskId: "task-001",
+        criterionId: "C4",
+        comment:
+          "The de Broglie equation λ = h/p is rendered as styled text inside a div with role=\"math\" but no MathML or alternative text. Screen readers cannot interpret the equation semantically.",
+        createdAt: "2026-03-22T11:18:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "In 1924, Louis de Broglie proposed a radical extension of wave–particle duality",
+          rects: [],
+        },
+      },
+      // C5 — mixed (needs_improvement + exceeds)
+      {
+        id: "ann-demo-5",
+        taskId: "task-001",
+        criterionId: "C5",
+        comment:
+          "The learning objectives list uses bullet spans instead of a semantic <ul>/<ol>. Keyboard users and AT cannot distinguish it as a list or navigate its items individually.",
+        createdAt: "2026-03-22T11:24:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "State and interpret the Heisenberg uncertainty principle.",
+          rects: [],
+        },
+      },
+      // C6 — exceeds (3 annotations → positive polarity)
+      {
+        id: "ann-demo-6",
+        taskId: "task-001",
+        criterionId: "C6",
+        comment:
+          "The Key Terms section uses a <dl>/<dt>/<dd> structure — exemplary semantic markup for a glossary. Screen readers announce each term/definition pair correctly.",
+        createdAt: "2026-03-22T11:30:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Heisenberg uncertainty principle",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-6b",
+        taskId: "task-001",
+        criterionId: "C6",
+        comment:
+          "\"Wave function collapse\" definition pairs concise label with an accurate, self-contained description — no external reference needed. Excellent for AT users reading out of context.",
+        createdAt: "2026-03-22T11:31:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Wave function collapse",
+          rects: [],
+        },
+      },
+      {
+        id: "ann-demo-6c",
+        taskId: "task-001",
+        criterionId: "C6",
+        comment:
+          "\"Interference pattern\" definition avoids jargon and provides a complete self-contained explanation — strong plain-language writing that benefits all learners.",
+        createdAt: "2026-03-22T11:32:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "Interference pattern",
+          rects: [],
+        },
+      },
+      // C7 — needs_improvement (1 annotation)
+      {
+        id: "ann-demo-7",
+        taskId: "task-001",
+        criterionId: "C7",
+        comment:
+          "Review question 1 contains no hyperlinks, but its instructional framing demonstrates the ambiguous-link pattern: \"calculate\" and \"compare\" reference external tables not linked here.",
+        createdAt: "2026-03-22T11:36:00Z",
+        anchor: {
+          type: "web",
+          selectedText: "An electron is accelerated through a potential difference of 100 V.",
+          rects: [],
+        },
+      },
+    ],
+    ratings: {
+      C1: {
+        needsImprovementActive: true,
+        exceedsActive: false,
+        proficientConfirmed: false,
+        needsImprovementText:
+          "The heading hierarchy skips levels in Chapter 1 (H1 → H3) and uses decorative headings on several pages. Landmark regions are absent on most templates. DOM reading order in the two-column layout does not match the visual order, and no skip-navigation link is present.",
+        exceedsText: "",
+      },
+      C2: {
+        needsImprovementActive: false,
+        exceedsActive: false,
+        proficientConfirmed: true,
+        needsImprovementText: "",
+        exceedsText: "",
+      },
+      C3: {
+        needsImprovementActive: true,
+        exceedsActive: false,
+        proficientConfirmed: false,
+        needsImprovementText:
+          "Several informative images use filenames or are completely missing alt text. The wave interference animation has no textual alternative. Complex diagrams (Figures 1.3 and 5) lack the extended descriptions required for learners who cannot perceive the visual content.",
+        exceedsText: "",
+      },
+      C4: {
+        needsImprovementActive: true,
+        exceedsActive: false,
+        proficientConfirmed: false,
+        needsImprovementText:
+          "The primary embedded video relies on auto-generated captions that contain significant technical errors. No downloadable transcript is provided. Revised captions and a timestamped transcript are required before this criterion can be considered met.",
+        exceedsText: "",
+      },
+      C5: {
+        needsImprovementActive: true,
+        exceedsActive: true,
+        proficientConfirmed: false,
+        needsImprovementText:
+          "Some interactive quiz widgets are not keyboard-operable and focus styles are suppressed via CSS. Error messages in the practice exercises rely on color alone without a text label or icon alternative.",
+        exceedsText:
+          "Where interactions do work, the microcopy is clear and recovery hints are helpful. The glossary tooltips are an excellent inclusive touch — they appear on both hover and focus, and the trigger text is screen-reader-accessible.",
+      },
+      C6: {
+        needsImprovementActive: false,
+        exceedsActive: true,
+        proficientConfirmed: false,
+        needsImprovementText: "",
+        exceedsText:
+          "All data tables use captions, scoped headers, and where appropriate, summary paragraphs that explain the structure. Complex data is also available in a downloadable CSV. This is exemplary alignment with accessible data presentation practices and exceeds the standard.",
+      },
+      C7: {
+        needsImprovementActive: true,
+        exceedsActive: false,
+        proficientConfirmed: false,
+        needsImprovementText:
+          "Multiple external links use generic text ('Read more', 'click here') that is ambiguous when read out of context. Several identical link labels point to different destinations. External links that open new tabs are not labelled as such.",
+        exceedsText: "",
+      },
+      C8: {
+        needsImprovementActive: false,
+        exceedsActive: false,
+        proficientConfirmed: true,
+        needsImprovementText: "",
+        exceedsText: "",
+      },
+    },
+    splitRatio: 0.65,
+    oerScrollY: 0,
+    lastSaved: new Date().toISOString(),
+    status: "submitted",
+  };
+}
+
+// ── Per-rubric report ─────────────────────────────────────────────────────────
+
+export async function getPerRubricReport(
+  oerId: string,
+  rubricTemplateId: RubricTemplateId
+): Promise<IPerRubricReport | null> {
+  const oer = getOerById(oerId);
+  if (!oer) return null;
+
+  const released =
+    oer.status === "feedback_available" ||
+    oer.status === "pending_verification" ||
+    oer.status === "certified";
+
+  const { current, anchor } = buildVersions(oer);
+
+  if (!released) {
+    return {
+      oer,
+      rubricTemplateId,
+      rubricName: "",
+      reviewCompletedAt: "",
+      releasedToAuthor: false,
+      criteria: [],
+      anchorVersion: anchor,
+      currentVersion: current,
+    };
+  }
+
+  // Find the completed task for this specific rubric
+  const task = allTasks().find(
+    (t) =>
+      t.oerId === oerId &&
+      t.rubricTemplateId === rubricTemplateId &&
+      t.status === "completed"
+  );
+  const taskId = task?.id ?? (oerId === "oer-001" ? "task-001" : null);
+  if (!taskId) return null;
+
+  let session = loadSession(taskId);
+  if (oerId === "oer-001" && (!session || session.status !== "submitted")) {
+    session = demoSessionForOer001();
+  }
+  if (!session) return null;
+
+  const rubricModule = await import(`../data/rubrics/${rubricTemplateId}.json`);
+  const rubric = rubricModule.default as IRubricTemplate;
+
+  const criteria: IAggregatedCriterionFeedback[] = rubric.criteria.map((c) => {
+    const r = session!.ratings[c.id];
+    const summary = ratingSummary(r);
+    // Polarity: exceeds-only → positive; anything else (NI, mixed, proficient) → negative
+    const polarity: "positive" | "negative" =
+      summary === "exceeds" ? "positive" : "negative";
+
+    return {
+      taskId,
+      rubricTemplateId,
+      criterionId: c.id,
+      criterionTitle: c.title,
+      criterionStandard: c.standard,
+      ratingSummary: summary,
+      overallComment: overallCommentForCriterion(r),
+      annotations: annotationsForCriterion(session!, c.id).map((a) => ({
+        ...a,
+        polarity,
+      })),
+    };
+  });
+
+  return {
+    oer,
+    rubricTemplateId,
+    rubricName: rubric.name,
+    reviewCompletedAt: task?.submittedAt ?? session.lastSaved,
+    releasedToAuthor: true,
+    criteria,
+    anchorVersion: anchor,
+    currentVersion: current,
+  };
+}
+
+// ── Author response CRUD ──────────────────────────────────────────────────────
+
+function responsesKey(oerId: string, rubricTemplateId: RubricTemplateId): string {
+  return `oer-hub:block-c:responses:${oerId}:${rubricTemplateId}`;
+}
+
+export async function getCriterionResponses(
+  oerId: string,
+  rubricTemplateId: RubricTemplateId
+): Promise<ICriterionResponse[]> {
+  return readJson<ICriterionResponse[]>(responsesKey(oerId, rubricTemplateId), []);
+}
+
+export async function upsertCriterionResponse(
+  response: ICriterionResponse
+): Promise<ICriterionResponse> {
+  const key = responsesKey(response.oerId, response.rubricTemplateId);
+  const existing = readJson<ICriterionResponse[]>(key, []);
+  const idx = existing.findIndex((r) => r.criterionId === response.criterionId);
+  const next =
+    idx >= 0
+      ? existing.map((r, i) => (i === idx ? response : r))
+      : [...existing, response];
+  writeJson(key, next);
+  return response;
+}
+
+export async function submitRevisionPackage(
+  submission: IRevisionSubmission
+): Promise<void> {
+  const key = `oer-hub:block-c:submission:${submission.oerId}:${submission.rubricTemplateId}`;
+  writeJson(key, submission);
+  setOerStatusOverride(submission.oerId, "pending_verification");
 }

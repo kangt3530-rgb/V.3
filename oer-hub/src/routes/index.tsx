@@ -5,7 +5,9 @@ import { SubmissionForm }           from "../features/block-a/SubmissionForm";
 import { ReviewerTaskCenter }        from "../features/block-a/ReviewerTaskCenter";
 import { CoordinatorCommandCenter }  from "../features/block-a/CoordinatorCommandCenter";
 import { ReviewerConsole }           from "../features/block-b/ReviewerConsole";
-import { FeedbackReport }            from "../features/block-c/FeedbackReport";
+import FeedbackReport                from "../features/block-c/FeedbackReport";
+import { OerRubricList }             from "../features/block-c/OerRubricList";
+import { RubricReviewEntry }         from "../features/block-c/RubricReviewEntry";
 import { MediationQueue }            from "../features/block-c/MediationQueue";
 import { ValidationLandingPage }     from "../features/block-c/ValidationLandingPage";
 
@@ -52,11 +54,11 @@ export function AppRoutes() {
           element={<AppShell fullScreen><ReviewerConsole /></AppShell>}
         />
 
-        {/* Block C: Aggregated feedback report (by OER id) */}
-        <Route
-          path="/reports/:oerId"
-          element={<AppShell><FeedbackReport /></AppShell>}
-        />
+        {/* Block C: Per-rubric feedback reports */}
+        <Route path="/reports/:oerId"                    element={<AppShell><OerRubricList /></AppShell>} />
+        <Route path="/reports/:oerId/:rubricId"          element={<AppShell><RubricReviewEntry /></AppShell>} />
+        <Route path="/reports/:oerId/:rubricId/read"     element={<AppShell fullScreen><FeedbackReport /></AppShell>} />
+        <Route path="/reports/:oerId/:rubricId/submit"   element={<AppShell><div className="pt-16 p-8 text-on-surface-variant">Submission review — coming soon</div></AppShell>} />
 
         {/* Public validation landing (no main app chrome) */}
         <Route path="/verify/:stampId" element={<ValidationLandingPage />} />

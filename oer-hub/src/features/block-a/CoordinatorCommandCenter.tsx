@@ -18,7 +18,7 @@ const RUBRIC_LABELS: Record<string, string> = {
 const PIPELINE_STAGES = [
   { key: "submitted",    label: "Submitted",    icon: "inbox" },
   { key: "under_review", label: "Under Review", icon: "rate_review" },
-  { key: "in_revision",  label: "In Revision",  icon: "edit_note" },
+  { key: "feedback_available",  label: "Feedback Available",  icon: "edit_note" },
   { key: "certified",    label: "Certified",    icon: "verified" },
 ];
 

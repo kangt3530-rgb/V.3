@@ -8,7 +8,7 @@ interface BadgeProps {
 const CONFIG: Record<string, { label: string; cls: string }> = {
   submitted:    { label: "Submitted",    cls: "bg-surface-container text-on-surface-variant" },
   under_review: { label: "Under Review", cls: "bg-primary-fixed/40 text-primary" },
-  in_revision:  { label: "In Revision",  cls: "bg-secondary-container/60 text-secondary" },
+  feedback_available: { label: "Feedback Available", cls: "bg-secondary-container/60 text-secondary" },
   pending_verification: {
     label: "Pending Verification",
     cls: "bg-surface-container-high text-primary",

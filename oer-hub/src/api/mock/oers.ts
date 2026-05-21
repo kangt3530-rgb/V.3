@@ -11,7 +11,7 @@ export const MOCK_OERS: IOer[] = [
     oerSource: "mock://quantum-mechanics",
     license: "CC BY",
     rubrics: ["accessibility", "disciplinary"],
-    status: "in_revision",
+    status: "feedback_available",
     submittedAt: "2026-03-10T09:00:00Z",
     updatedAt: "2026-03-25T14:30:00Z",
     thirdPartyContent: "Figure 3 (Bohr model diagram) sourced from Wikipedia CC BY-SA. Table 2 adapted from OpenStax Physics 2e, CC BY 4.0.",

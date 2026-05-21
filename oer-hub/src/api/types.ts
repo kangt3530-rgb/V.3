@@ -5,10 +5,13 @@ export type UserRole = "author" | "reviewer" | "coordinator";
 export type OerStatus =
   | "submitted"
   | "under_review"
-  | "in_revision"
-  /** Author submitted revision summary; coordinator final check */
+  /** Feedback released to author; author is responding per-criterion */
+  | "feedback_available"
+  /** Author submitted revision package; coordinator final check */
   | "pending_verification"
-  | "certified";
+  | "certified"
+  /** Reserved for future multi-cycle support */
+  | "revision_requested_again";
 
 export type CCLicense =
   | "CC BY"
@@ -77,6 +80,8 @@ export interface IAnnotation {
   criterionId: string;
   anchor: AnnotationAnchor;
   comment: string;
+  /** Set when surfaced in a Block C report; optional so Block B can create annotations without it. */
+  polarity?: "positive" | "negative";
   createdAt: string;
 }
 
@@ -136,46 +141,31 @@ export interface IOerVersion {
   oerSource: string;
 }
 
-/** One row in the aggregated feedback report (per task × criterion). */
+/** One row in the per-rubric feedback report (per rubric × criterion). */
 export interface IAggregatedCriterionFeedback {
   taskId: string;
   rubricTemplateId: RubricTemplateId;
   criterionId: string;
   criterionTitle: string;
+  /** Short rubric definition text shown in "About this criterion" section. */
+  criterionStandard: string;
   ratingSummary: CriterionRatingSummary;
-  /** Coordinator / AI synthesized text shown to author */
-  synthesizedComment: string;
-  /** Immutable reviewer evidence (read-only for author). */
+  /** Reviewer's holistic criterion-level assessment. */
+  overallComment: string;
+  /** Specific anchored reviewer notes with location + comment. */
   annotations: IAnnotation[];
 }
 
-export type RevisionCardKind = "local" | "global";
-
-export interface IRevisionCard {
-  id: string;
-  oerId: string;
-  taskId: string;
+/** Feedback report scoped to one rubric review (replaces IAggregatedReport). */
+export interface IPerRubricReport {
+  oer: IOer;
   rubricTemplateId: RubricTemplateId;
-  criterionId: string;
-  title: string;
-  kind: RevisionCardKind;
-  synthesizedFeedback: string;
-  annotationIds: string[];
-}
-
-export interface IRevisionCardProgress {
-  cardId: string;
-  resolved: boolean;
-  fixLog: string;
-  /** Pending question routed to coordinator (mock). */
-  coordinatorQuestion: string;
-}
-
-export interface IRevisionCycleState {
-  oerId: string;
-  cards: IRevisionCardProgress[];
-  summaryOfRevisions: string;
-  submittedForVerification: boolean;
+  rubricName: string;
+  reviewCompletedAt: string;
+  releasedToAuthor: boolean;
+  criteria: IAggregatedCriterionFeedback[];
+  anchorVersion: IOerVersion;
+  currentVersion: IOerVersion;
 }
 
 export type MediationItemStatus = "pending" | "released";
@@ -210,12 +200,36 @@ export interface IDigitalStamp {
   certificationSummary: string;
 }
 
-export interface IAggregatedReport {
-  oer: IOer;
-  releasedToAuthor: boolean;
-  /** When false, author sees placeholder until coordinator releases */
-  criteria: IAggregatedCriterionFeedback[];
-  revisionCards: IRevisionCard[];
-  anchorVersion: IOerVersion;
-  currentVersion: IOerVersion;
+// ─── Block C: Author response layer ─────────────────────────────────────────
+
+export type RevisionStatus = "unresolved" | "resolved" | "awaiting_clarification";
+
+export interface ICoordinatorQuestion {
+  id: string;
+  questionText: string;
+  sentAt: string;
+  reply: string | null;
+  repliedAt: string | null;
+}
+
+export interface ICriterionResponse {
+  oerId: string;
+  rubricTemplateId: RubricTemplateId;
+  criterionId: string;
+  revisionLog: string;
+  coordinatorQuestion: ICoordinatorQuestion | null;
+  status: RevisionStatus;
+  resolvedAt: string | null;
+}
+
+export interface IRevisionSubmission {
+  oerId: string;
+  rubricTemplateId: RubricTemplateId;
+  submittedAt: string;
+  revisedOerUrl: string | null;
+  revisedOerFileId: string | null;
+  criterionResponses: ICriterionResponse[];
+  coverNote: string;
+  /** Tracks whether the cover note was AI-assisted (transparency). */
+  coverNoteAiGenerated: boolean;
 }

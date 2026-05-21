@@ -52,7 +52,7 @@ export function AuthorDashboard() {
           {[
             { label: "Submitted",    value: oers.filter(o => o.status === "submitted").length,    color: "text-on-surface-variant" },
             { label: "Under Review", value: oers.filter(o => o.status === "under_review").length, color: "text-primary" },
-            { label: "In Revision",  value: oers.filter(o => o.status === "in_revision").length,  color: "text-secondary" },
+            { label: "Feedback Available",  value: oers.filter(o => o.status === "feedback_available").length,  color: "text-secondary" },
             { label: "Pending verify", value: oers.filter(o => o.status === "pending_verification").length, color: "text-primary" },
             { label: "Certified",    value: oers.filter(o => o.status === "certified").length,    color: "text-[#1a5c1a]" },
           ].map(({ label, value, color }) => (
@@ -162,10 +162,10 @@ function ActionCTA({ oer }: { oer: IOer }) {
           <Button variant="secondary" size="sm">View Report</Button>
         </Link>
       );
-    case "in_revision":
+    case "feedback_available":
       return (
         <Link to={`/reports/${oer.id}`}>
-          <Button size="sm" icon="edit_note">View Revision Cards</Button>
+          <Button size="sm" icon="edit_note">View Feedback</Button>
         </Link>
       );
     case "pending_verification":
