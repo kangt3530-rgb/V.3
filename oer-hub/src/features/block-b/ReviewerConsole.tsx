@@ -132,6 +132,9 @@ export function ReviewerConsole() {
       oerScrollY:       s.oerScrollY,
       lastSaved:        new Date().toISOString(),
       status:           "submitted",
+      chatHistory:      s.chatHistory ?? [],
+      aiPaneOpen:       s.aiPaneOpen ?? false,
+      activeNudges:     s.activeNudges ?? [],
     });
     await new Promise((r) => setTimeout(r, 400));
     navigate("/reviewer");

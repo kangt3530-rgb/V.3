@@ -544,6 +544,9 @@ function demoSessionForOer001(): IReviewSession {
     oerScrollY: 0,
     lastSaved: new Date().toISOString(),
     status: "submitted",
+    chatHistory: [],
+    aiPaneOpen: false,
+    activeNudges: [],
   };
 }
 
