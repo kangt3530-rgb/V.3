@@ -29,6 +29,9 @@ export function useAI(systemPrompt: string) {
     }));
 
     try {
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        throw new Error("VITE_GEMINI_API_KEY is not configured.");
+      }
       const res = await fetch(GEMINI_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
