@@ -8,13 +8,21 @@ import {
   submitReviewToMediation,
 } from "../../api";
 import { useReviewStore } from "../../store/reviewStore";
+import { useAIPrefsStore } from "../../store/aiPrefsStore";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import { ResizableSplitPane } from "../../components/layout/ResizableSplitPane";
 import { OERRenderer } from "./OERPane/OERRenderer";
 import { RubricPanel } from "./RubricPane/RubricPanel";
 import { PreambleModal } from "./RubricPane/PreambleModal";
+import { GapCheckModal } from "./RubricPane/GapCheckModal";
+import { AIChatbox } from "./AIPane/AIChatbox";
+import { detectGaps } from "../../lib/gapCheck";
+import type { GapItem } from "../../lib/gapCheck";
+import { computeR13Findings } from "../../hooks/useR13ConsistencyCheck";
+import type { R13Finding } from "../../api/ai";
 import type { IRubricTemplate, IAnnotation, ITask } from "../../api/types";
 import { layout } from "../../design/tokens";
+import { getRubricTermSet, getRubricFullText } from "../../data/rubricGlossaryLookup";
 
 export function ReviewerConsole() {
   const { taskId = "task-001" } = useParams();
@@ -27,11 +35,22 @@ export function ReviewerConsole() {
   const [isSubmitting, setIsSubmitting]    = useState(false);
   const [activeAnnotationId, setActiveAnnotationId] = useState<string | null>(null);
 
-  const initSession  = useReviewStore((s) => s.initSession);
-  const resetSession = useReviewStore((s) => s.resetSession);
-  const setSplitRatio = useReviewStore((s) => s.setSplitRatio);
-  const setStatus    = useReviewStore((s) => s.setStatus);
+  // R8 gap-check modal state
+  const [gapItems, setGapItems]           = useState<GapItem[]>([]);
+  const [showGapModal, setShowGapModal]   = useState(false);
+  const [criterionFlaggedFields, setCriterionFlaggedFields] =
+    useState<Record<string, string[]>>({});
+
+  // R13 consistency check state
+  const [r13Findings, setR13Findings] = useState<R13Finding[]>([]);
+
+  const initSession      = useReviewStore((s) => s.initSession);
+  const resetSession     = useReviewStore((s) => s.resetSession);
+  const setSplitRatio    = useReviewStore((s) => s.setSplitRatio);
+  const setStatus        = useReviewStore((s) => s.setStatus);
   const persistSessionNow = useReviewStore((s) => s.persistSessionNow);
+  const setRubricContext = useReviewStore((s) => s.setRubricContext);
+  const r13Prefs         = useReviewStore((s) => s.aiPreferences.r13);
 
   // Mount: load task + rubric + restore draft
   useEffect(() => {
@@ -43,6 +62,10 @@ export function ReviewerConsole() {
 
         const tmpl = await getRubricTemplate(t.rubricTemplateId);
         setRubricTemplate(tmpl);
+        setRubricContext(
+          getRubricTermSet(t.rubricTemplateId),
+          getRubricFullText(t.rubricTemplateId)
+        );
 
         // Restore draft or start fresh.
         // Always override OER metadata from the live task — oerType/oerSource
@@ -75,7 +98,7 @@ export function ReviewerConsole() {
       }
     }
     init();
-  }, [taskId, navigate, initSession, resetSession]);
+  }, [taskId, navigate, initSession, resetSession, setRubricContext]);
 
   // Auto-save on every store mutation
   useAutoSave();
@@ -92,27 +115,79 @@ export function ReviewerConsole() {
     setTimeout(() => setActiveAnnotationId(null), 2000);
   }
 
-  async function handleSubmit() {
+  async function doSubmit() {
     setIsSubmitting(true);
     setStatus("submitted");
     persistSessionNow();
     const s = useReviewStore.getState();
     await submitReviewToMediation({
-      taskId: s.taskId,
-      oerId: s.oerId,
-      oerType: s.oerType,
-      oerSource: s.oerSource,
+      taskId:           s.taskId,
+      oerId:            s.oerId,
+      oerType:          s.oerType,
+      oerSource:        s.oerSource,
       rubricTemplateId: s.rubricTemplateId,
-      annotations: s.annotations,
-      ratings: s.ratings,
-      splitRatio: s.splitRatio,
-      oerScrollY: s.oerScrollY,
-      lastSaved: new Date().toISOString(),
-      status: "submitted",
+      annotations:      s.annotations,
+      ratings:          s.ratings,
+      splitRatio:       s.splitRatio,
+      oerScrollY:       s.oerScrollY,
+      lastSaved:        new Date().toISOString(),
+      status:           "submitted",
     });
     await new Promise((r) => setTimeout(r, 400));
     navigate("/reviewer");
   }
+
+  function handleSubmit() {
+    const s = useReviewStore.getState();
+    const gaps = detectGaps(rubricTemplate!.criteria, s.ratings, s.annotations);
+    const r13Enabled = useAIPrefsStore.getState().isNudgeEnabled(s.rubricTemplateId, "consistency_check");
+    const findings = r13Enabled
+      ? computeR13Findings(rubricTemplate!, s.ratings, s.annotations)
+      : [];
+
+    if (gaps.length > 0 || findings.length > 0) {
+      setGapItems(gaps);
+      setR13Findings(findings);
+      setShowGapModal(true);
+      return;
+    }
+    setCriterionFlaggedFields({});
+    doSubmit();
+  }
+
+  function handleGapProceed() {
+    setShowGapModal(false);
+    setR13Findings([]);
+    setCriterionFlaggedFields({});
+    doSubmit();
+  }
+
+  function handleGapReturnToEdit(allGaps: GapItem[], firstUnacknowledgedCriterionId: string | undefined) {
+    setShowGapModal(false);
+    setR13Findings([]);
+
+    // Apply red borders to every flagged field across all gap items
+    const map: Record<string, string[]> = {};
+    for (const gap of allGaps) {
+      if (!map[gap.criterionId]) map[gap.criterionId] = [];
+      if (!map[gap.criterionId].includes(gap.fieldRef)) {
+        map[gap.criterionId].push(gap.fieldRef);
+      }
+    }
+    setCriterionFlaggedFields(map);
+
+    // Scroll the rubric panel to the first unacknowledged criterion
+    if (firstUnacknowledgedCriterionId) {
+      setTimeout(() => {
+        const el = document.querySelector(
+          `[data-criterion-id="${firstUnacknowledgedCriterionId}"]`
+        );
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }
+
+  const submitLabel = isSubmitting ? "Submitting…" : "Submit Review";
 
   if (loading) return <LoadingShell />;
   if (!task || !rubricTemplate) return null;
@@ -156,26 +231,31 @@ export function ReviewerConsole() {
         </div>
       </div>
 
-      {/* Main split-pane workspace */}
-      <div className="flex-1 overflow-hidden relative">
-        <ResizableSplitPane
-          left={
-            <OERRenderer
-              rubricTemplate={rubricTemplate}
-              activeAnnotationId={activeAnnotationId}
-            />
-          }
-          right={
-            <RubricPanel
-              template={rubricTemplate}
-              activeAnnotationId={activeAnnotationId}
-              onEvidenceClick={handleEvidenceClick}
-              onRubricFocus={handleRubricFocus}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-            />
-          }
-        />
+      {/* Main split-pane workspace + AI panel */}
+      <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-hidden relative min-w-0">
+          <ResizableSplitPane
+            left={
+              <OERRenderer
+                rubricTemplate={rubricTemplate}
+                activeAnnotationId={activeAnnotationId}
+              />
+            }
+            right={
+              <RubricPanel
+                template={rubricTemplate}
+                activeAnnotationId={activeAnnotationId}
+                onEvidenceClick={handleEvidenceClick}
+                onRubricFocus={handleRubricFocus}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                submitLabel={submitLabel}
+                criterionFlaggedFields={criterionFlaggedFields}
+              />
+            }
+          />
+        </div>
+        <AIChatbox />
       </div>
 
       {/* Preamble modal — shown on first visit */}
@@ -183,6 +263,17 @@ export function ReviewerConsole() {
         <PreambleModal
           template={rubricTemplate}
           onProceed={() => setShowPreamble(false)}
+        />
+      )}
+
+      {/* R8 + R13 pre-submit modal — intercepts submission when gaps or consistency findings exist */}
+      {showGapModal && (
+        <GapCheckModal
+          gapItems={gapItems}
+          r13Findings={r13Findings}
+          r13Prefs={r13Prefs}
+          onProceed={handleGapProceed}
+          onReturnToEdit={handleGapReturnToEdit}
         />
       )}
     </div>

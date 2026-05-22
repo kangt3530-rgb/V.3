@@ -80,6 +80,18 @@ body {
   100% { background-color: rgba(254, 214, 91, 0.80); box-shadow: none; }
 }
 
+/* ── R7 Voice Input ── */
+@keyframes voice-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(186, 26, 26, 0); }
+}
+
+.voice-mic-active {
+  color: #ba1a1a;
+  animation: voice-ring-pulse 1.2s ease-in-out infinite;
+  border-radius: 9999px;
+}
+
 /* ── Split-pane layout transition ── */
 .split-pane-grid {
   transition: grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1);

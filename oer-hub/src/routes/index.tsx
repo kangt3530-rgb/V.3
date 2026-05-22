@@ -3,6 +3,7 @@ import { AppShell } from "../components/layout/AppShell";
 import { AuthorDashboard }          from "../features/block-a/AuthorDashboard";
 import { SubmissionForm }           from "../features/block-a/SubmissionForm";
 import { ReviewerTaskCenter }        from "../features/block-a/ReviewerTaskCenter";
+import { ProfileSettingsPage }       from "../features/block-a/ProfileSettingsPage";
 import { CoordinatorCommandCenter }  from "../features/block-a/CoordinatorCommandCenter";
 import { ReviewerConsole }           from "../features/block-b/ReviewerConsole";
 import FeedbackReport                from "../features/block-c/FeedbackReport";
@@ -35,6 +36,10 @@ export function AppRoutes() {
         <Route
           path="/reviewer/archive"
           element={<AppShell><div className="pt-16 p-8 text-on-surface-variant">Archive — coming soon</div></AppShell>}
+        />
+        <Route
+          path="/reviewer/settings"
+          element={<AppShell><ProfileSettingsPage /></AppShell>}
         />
         <Route
           path="/coordinator"

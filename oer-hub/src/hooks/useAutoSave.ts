@@ -15,11 +15,14 @@ const DEBOUNCE_MS = 800;
  */
 export function useAutoSave() {
   // Individual primitive / stable-reference selectors — no object creation.
-  const taskId      = useReviewStore((s) => s.taskId);
-  const annotations = useReviewStore((s) => s.annotations);   // stable ref until mutated
-  const ratings     = useReviewStore((s) => s.ratings);       // stable ref until mutated
-  const splitRatio  = useReviewStore((s) => s.splitRatio);
-  const status      = useReviewStore((s) => s.status);
+  const taskId       = useReviewStore((s) => s.taskId);
+  const annotations  = useReviewStore((s) => s.annotations);   // stable ref until mutated
+  const ratings      = useReviewStore((s) => s.ratings);        // stable ref until mutated
+  const splitRatio   = useReviewStore((s) => s.splitRatio);
+  const status       = useReviewStore((s) => s.status);
+  const chatHistory  = useReviewStore((s) => s.chatHistory);    // stable ref until mutated
+  const aiPaneOpen   = useReviewStore((s) => s.aiPaneOpen);
+  const activeNudges = useReviewStore((s) => s.activeNudges);   // stable ref until mutated
   const setLastSaved = useReviewStore((s) => s.setLastSaved);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,6 +49,9 @@ export function useAutoSave() {
         oerScrollY:       s.oerScrollY,
         lastSaved:        now,
         status:           s.status,
+        chatHistory:      s.chatHistory,
+        aiPaneOpen:       s.aiPaneOpen,
+        activeNudges:     s.activeNudges,
       });
       setLastSaved(now);
     }, DEBOUNCE_MS);
@@ -53,5 +59,5 @@ export function useAutoSave() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [taskId, annotations, ratings, splitRatio, status, setLastSaved]);
+  }, [taskId, annotations, ratings, splitRatio, status, chatHistory, aiPaneOpen, activeNudges, setLastSaved]);
 }

@@ -1,15 +1,20 @@
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { IRubricTemplate, IAnnotation } from "../../../api/types";
 import { useReviewStore } from "../../../store/reviewStore";
 import { CriterionCard } from "./CriterionCard";
 import { Button } from "../../../components/ui/Button";
 
 interface RubricPanelProps {
-  template:           IRubricTemplate;
-  activeAnnotationId: string | null | undefined;
-  onEvidenceClick:    (annotation: IAnnotation) => void;
-  onRubricFocus:      () => void;        // triggers adaptive 5:5 layout
-  onSubmit:           () => void;
-  isSubmitting:       boolean;
+  template:                IRubricTemplate;
+  activeAnnotationId:      string | null | undefined;
+  onEvidenceClick:         (annotation: IAnnotation) => void;
+  onRubricFocus:           () => void;
+  onSubmit:                () => void;
+  isSubmitting:            boolean;
+  submitLabel?:            string;
+  /** Per-criterion field refs that should show a red gap-check border. */
+  criterionFlaggedFields?: Record<string, string[]>;
 }
 
 export function RubricPanel({
@@ -19,11 +24,69 @@ export function RubricPanel({
   onRubricFocus,
   onSubmit,
   isSubmitting,
+  submitLabel,
+  criterionFlaggedFields,
 }: RubricPanelProps) {
   const getAnnotationsForCriterion = useReviewStore((s) => s.getAnnotationsForCriterion);
-  const isCriterionAddressed = useReviewStore((s) => s.isCriterionAddressed);
-  const isReadyToSubmit = useReviewStore((s) => s.isReadyToSubmit);
-  const persistSessionNow = useReviewStore((s) => s.persistSessionNow);
+  const isCriterionAddressed       = useReviewStore((s) => s.isCriterionAddressed);
+  const isReadyToSubmit            = useReviewStore((s) => s.isReadyToSubmit);
+  const persistSessionNow          = useReviewStore((s) => s.persistSessionNow);
+  const activeRubricTerms          = useReviewStore((s) => s.activeRubricTerms);
+  const dispatchLookup             = useReviewStore((s) => s.dispatchLookup);
+
+  const panelRef    = useRef<HTMLDivElement>(null);
+  const listRef     = useRef<HTMLDivElement>(null);
+  const [lookupAnchor, setLookupAnchor] = useState<{ term: string; x: number; y: number } | null>(null);
+  // seq changes each click so the card's useEffect re-fires even for the same criterion
+  const [focusTrigger, setFocusTrigger] = useState<{ criterionId: string; seq: number } | null>(null);
+
+  function scrollToFirstUnchosen() {
+    const firstId = criteriaIds.find((id) => !isCriterionAddressed(id));
+    if (!firstId) return;
+    // Update trigger first so the card opens, then scroll after the DOM update
+    setFocusTrigger({ criterionId: firstId, seq: Date.now() });
+    setTimeout(() => {
+      const el = listRef.current?.querySelector(`[data-criterion-id="${firstId}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
+  function handleSubmitClick() {
+    if (canSubmit) onSubmit();
+    else scrollToFirstUnchosen();
+  }
+
+  // Detect term selection within the rubric panel
+  useEffect(() => {
+    function handleMouseUp() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) { setLookupAnchor(null); return; }
+
+      // Don't trigger lookup when selecting inside buttons, textareas, or inputs
+      const anchorNode = sel.anchorNode;
+      const anchorEl = anchorNode instanceof Element ? anchorNode : anchorNode?.parentElement;
+      if (anchorEl?.closest("button, textarea, input")) { setLookupAnchor(null); return; }
+
+      const text = sel.toString().trim();
+      if (!text || !activeRubricTerms.has(text.toLowerCase())) { setLookupAnchor(null); return; }
+      const rect = sel.getRangeAt(0).getBoundingClientRect();
+      setLookupAnchor({ term: text, x: rect.left + rect.width / 2, y: rect.top });
+    }
+    const panel = panelRef.current;
+    if (!panel) return;
+    panel.addEventListener("mouseup", handleMouseUp);
+    return () => panel.removeEventListener("mouseup", handleMouseUp);
+  }, [activeRubricTerms]);
+
+  // Dismiss chip on outside click
+  useEffect(() => {
+    if (!lookupAnchor) return;
+    function handleMouseDown(e: MouseEvent) {
+      if (!(e.target as Element).closest("[data-lookup-chip]")) setLookupAnchor(null);
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [lookupAnchor]);
 
   const criteriaIds     = template.criteria.map((c) => c.id);
   const completedCount  = criteriaIds.filter((id) => isCriterionAddressed(id)).length;
@@ -32,7 +95,9 @@ export function RubricPanel({
   const canSubmit       = isReadyToSubmit(criteriaIds);
 
   return (
+    <>
     <div
+      ref={panelRef}
       className="h-full flex flex-col bg-surface-container-high overflow-hidden"
       onFocus={onRubricFocus}
       onClick={onRubricFocus}
@@ -57,7 +122,7 @@ export function RubricPanel({
       </div>
 
       {/* Scrollable criteria list */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {template.criteria.map((criterion) => (
           <CriterionCard
             key={criterion.id}
@@ -66,6 +131,8 @@ export function RubricPanel({
             activeAnnotationId={activeAnnotationId}
             onEvidenceClick={onEvidenceClick}
             onFocus={onRubricFocus}
+            flaggedFields={criterionFlaggedFields?.[criterion.id]}
+            focusTrigger={focusTrigger?.criterionId === criterion.id ? focusTrigger.seq : undefined}
           />
         ))}
       </div>
@@ -84,16 +151,34 @@ export function RubricPanel({
           </Button>
           <Button
             size="sm"
-            icon="check_circle"
+            icon={canSubmit ? "check_circle" : "arrow_downward"}
             iconPosition="right"
-            disabled={!canSubmit || isSubmitting}
-            onClick={onSubmit}
+            disabled={isSubmitting}
+            onClick={handleSubmitClick}
             className="flex-1 justify-center"
           >
-            {isSubmitting ? "Submitting…" : "Finalize Review"}
+            {submitLabel ?? "Submit Review"}
           </Button>
         </div>
       </div>
     </div>
+
+    {lookupAnchor && createPortal(
+      <button
+        data-lookup-chip
+        style={{ position: "fixed", left: lookupAnchor.x, top: lookupAnchor.y - 44, transform: "translateX(-50%)" }}
+        onClick={() => {
+          dispatchLookup(lookupAnchor.term);
+          window.getSelection()?.removeAllRanges();
+          setLookupAnchor(null);
+        }}
+        className="z-50 flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-on-secondary text-label-sm font-label font-semibold uppercase tracking-widest rounded shadow-lg hover:opacity-90 transition-opacity"
+      >
+        <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>menu_book</span>
+        Look Up
+      </button>,
+      document.body
+    )}
+    </>
   );
 }

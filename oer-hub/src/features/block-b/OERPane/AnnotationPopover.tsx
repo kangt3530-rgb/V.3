@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useReviewStore } from "../../../store/reviewStore";
 import type { IRubricTemplate } from "../../../api/types";
+import { callGemini } from "../../../api/ai";
+import { useVoiceInput, isSpeechSupported } from "../../../hooks/useVoiceInput";
 
 interface AnnotationPopoverProps {
   containerRef:  RefObject<HTMLDivElement | null>;
@@ -28,14 +30,38 @@ export function AnnotationPopover({
   onSave,
   onCancel,
 }: AnnotationPopoverProps) {
-  const addAnnotation = useReviewStore((s) => s.addAnnotation);
-  const taskId        = useReviewStore((s) => s.taskId);
+  const addAnnotation      = useReviewStore((s) => s.addAnnotation);
+  const taskId             = useReviewStore((s) => s.taskId);
+  const activeRubricTerms  = useReviewStore((s) => s.activeRubricTerms);
+  const dispatchLookup     = useReviewStore((s) => s.dispatchLookup);
 
   const [criterionId, setCriterionId] = useState("");
   const [comment, setComment]         = useState("");
   const [error, setError]             = useState("");
+  const [suggestedIds, setSuggestedIds] = useState<string[] | null>(null);
+  const [rankingError, setRankingError] = useState("");
+  const [voiceError, setVoiceError]   = useState<string | null>(null);
+  const voiceErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const popoverRef    = useRef<HTMLDivElement>(null);
+  const rankCallIdRef = useRef(0);
+
+  function handleVoiceError(msg: string) {
+    setVoiceError(msg);
+    if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
+    voiceErrorTimerRef.current = setTimeout(() => setVoiceError(null), 3000);
+  }
+
+  const voiceComment = useVoiceInput({
+    fieldId: "annotation-new-comment",
+    value: comment,
+    onChange: (v) => { setComment(v); setError(""); },
+    onError: handleVoiceError,
+  });
+
+  useEffect(() => () => {
+    if (voiceErrorTimerRef.current) clearTimeout(voiceErrorTimerRef.current);
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -82,8 +108,43 @@ export function AnnotationPopover({
     onSave();
   }
 
-  // Use a hardcoded fallback list when no rubric template is loaded yet
   const criteriaOptions = rubricTemplate?.criteria ?? [];
+  const isKnownTerm = activeRubricTerms.has(selectedText.toLowerCase().trim());
+
+  async function handleDropdownOpen() {
+    setSuggestedIds(null);
+    setRankingError("");
+    if (criteriaOptions.length === 0) return;
+    const callId = ++rankCallIdRef.current;
+
+    const systemPrompt =
+      "You are an OER review assistant. Given a highlighted passage from an OER and a list of rubric criteria, return a JSON array of exactly 3 criterion IDs most relevant to the passage, ranked best-match first. Return only the JSON array, nothing else.";
+
+    const criteriaText = criteriaOptions
+      .map((c) => `${c.id}: ${c.title} — ${c.standard}`)
+      .join("\n");
+
+    const userMessage = `Highlighted passage:\n"${selectedText}"\n\nCriteria:\n${criteriaText}`;
+
+    try {
+      const raw = await callGemini([{ role: "user", content: userMessage }], systemPrompt);
+      const cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const parsed: unknown = JSON.parse(cleaned);
+      if (!Array.isArray(parsed)) return;
+      const ids = (parsed as unknown[])
+        .slice(0, 3)
+        .filter((id): id is string =>
+          typeof id === "string" && criteriaOptions.some((c) => c.id === id)
+        );
+      if (ids.length === 0) {
+        if (callId === rankCallIdRef.current) setRankingError("Could not rank criteria — suggestions unavailable.");
+        return;
+      }
+      if (callId === rankCallIdRef.current) setSuggestedIds(ids);
+    } catch {
+      if (callId === rankCallIdRef.current) setRankingError("Could not rank criteria — suggestions unavailable.");
+    }
+  }
 
   return (
     <div
@@ -115,27 +176,75 @@ export function AnnotationPopover({
           <select
             value={criterionId}
             onChange={(e) => { setCriterionId(e.target.value); setError(""); }}
+            onMouseDown={handleDropdownOpen}
             className="w-full bg-surface-container-low border-0 border-b-2 border-outline-variant focus:border-secondary outline-none pb-1 text-body-md text-on-surface transition-colors"
           >
             <option value="">Select criterion…</option>
-            {criteriaOptions.map((c) => (
-              <option key={c.id} value={c.id}>{c.id}: {c.title}</option>
-            ))}
+            {suggestedIds !== null ? (
+              <>
+                <optgroup label="✦ Suggested">
+                  {suggestedIds
+                    .map((id) => criteriaOptions.find((c) => c.id === id))
+                    .filter((c): c is NonNullable<typeof c> => c !== undefined)
+                    .map((c) => (
+                      <option key={`sug-${c.id}`} value={c.id}>{c.id}: {c.title}</option>
+                    ))}
+                </optgroup>
+                <optgroup label="All criteria">
+                  {criteriaOptions
+                    .filter((c) => !suggestedIds.includes(c.id))
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>{c.id}: {c.title}</option>
+                    ))}
+                </optgroup>
+              </>
+            ) : (
+              criteriaOptions.map((c) => (
+                <option key={c.id} value={c.id}>{c.id}: {c.title}</option>
+              ))
+            )}
           </select>
+          {rankingError && <p className="text-body-sm text-error mt-1">{rankingError}</p>}
         </div>
 
         {/* Comment */}
         <div>
-          <label className="block text-label-md font-label font-semibold uppercase tracking-widest text-on-surface-variant mb-1.5">
-            Evidence Comment
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-label-md font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+              Evidence Comment
+            </label>
+            {isSpeechSupported && (
+              <div className="flex items-center gap-1.5">
+                {voiceComment.isRecording && (
+                  <button type="button" onClick={voiceComment.discard}
+                    className="text-label-sm font-label text-on-surface-variant/60 hover:text-error transition-colors">
+                    Discard
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={voiceComment.isRecording ? voiceComment.stopRecording : voiceComment.startRecording}
+                  title={voiceComment.isRecording ? "Stop recording" : "Dictate comment"}
+                  className={voiceComment.isRecording ? "voice-mic-active" : "text-on-surface-variant/40 hover:text-on-surface-variant transition-colors rounded-full"}
+                >
+                  <span className="material-symbols-outlined text-[15px]">mic</span>
+                </button>
+              </div>
+            )}
+          </div>
           <textarea
             value={comment}
             onChange={(e) => { setComment(e.target.value); setError(""); }}
             placeholder="Describe what this evidence shows…"
             rows={3}
-            className="w-full bg-transparent border-0 border-b-2 border-outline-variant focus:border-secondary outline-none pb-1 text-body-md text-on-surface placeholder:text-on-surface-variant/50 resize-none transition-colors"
+            className={[
+              "w-full bg-transparent border-0 border-b-2 outline-none pb-1 text-body-md text-on-surface placeholder:text-on-surface-variant/50 resize-none transition-colors",
+              voiceComment.isRecording ? "border-error/50" : "border-outline-variant focus:border-secondary",
+            ].join(" ")}
           />
+          {voiceError && (
+            <p className="text-body-sm text-error mt-0.5">{voiceError}</p>
+          )}
         </div>
 
         {error && <p className="text-body-sm text-error">{error}</p>}
@@ -148,6 +257,14 @@ export function AnnotationPopover({
           >
             Cancel
           </button>
+          {isKnownTerm && (
+            <button
+              onClick={() => { dispatchLookup(selectedText.trim()); onCancel(); }}
+              className="flex-1 py-2 text-label-md font-label font-semibold uppercase tracking-widest text-secondary hover:text-primary transition-colors"
+            >
+              Look Up
+            </button>
+          )}
           <button
             onClick={handleSave}
             className="flex-1 py-2 bg-primary text-on-primary rounded-sm text-label-md font-label font-semibold uppercase tracking-widest hover:bg-primary-container transition-colors"

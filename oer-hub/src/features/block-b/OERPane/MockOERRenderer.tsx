@@ -6,6 +6,7 @@ import {
 } from "react";
 import type { IAnnotation, IRubricTemplate } from "../../../api/types";
 import { AnnotationPopover } from "./AnnotationPopover";
+import { OERMetadataSummary } from "../RubricPane/OERMetadataSummary";
 
 interface MockOERRendererProps {
   annotations:        IAnnotation[];
@@ -81,6 +82,14 @@ export function MockOERRenderer({
 
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      setSelection(null);
+      return;
+    }
+
+    // Only allow annotation when the selection originates inside OER content
+    const anchorNode = sel.anchorNode;
+    const oerArticle = contentRef.current?.querySelector('[data-oer-content]');
+    if (!oerArticle || !anchorNode || !oerArticle.contains(anchorNode)) {
       setSelection(null);
       return;
     }
@@ -168,6 +177,9 @@ export function MockOERRenderer({
       >
         {/* contentRef: position:relative, so absolute highlights anchor here */}
         <div ref={contentRef} className="relative max-w-2xl mx-auto px-8 pt-10 pb-24">
+
+          {/* ── OER metadata snapshot ─────────────────────────────────────── */}
+          <OERMetadataSummary />
 
           {/* ── OER book content ─────────────────────────────────────────── */}
           <OERContent />
@@ -365,7 +377,7 @@ function AnnotationTooltip({
 
 function OERContent() {
   return (
-    <article className="font-['Newsreader',Georgia,serif] text-[#1c1c18] leading-relaxed select-text">
+    <article data-oer-content className="font-['Newsreader',Georgia,serif] text-[#1c1c18] leading-relaxed select-text">
 
       {/* ── Chapter header ─────────────────────────────────────────────── */}
       <header className="mb-10">
