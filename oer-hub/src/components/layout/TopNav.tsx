@@ -51,6 +51,7 @@ export function TopNav() {
             <>
               <NavLink to="/reviewer">Task Center</NavLink>
               <NavLink to="/reviewer/archive">Archive</NavLink>
+              <NavLink to="/reviewer/settings">Settings</NavLink>
             </>
           )}
           {role === "coordinator" && (

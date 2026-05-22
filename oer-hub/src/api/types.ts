@@ -1,3 +1,6 @@
+import type { ChatMessage, ActiveNudge } from "./ai";
+export type { ChatMessage, ActiveNudge };
+
 // ─── Domain types ────────────────────────────────────────────────────────────
 
 export type UserRole = "author" | "reviewer" | "coordinator";
@@ -100,6 +103,9 @@ export interface IReviewSession {
   oerScrollY: number;
   lastSaved: string;
   status: "draft" | "submitted";
+  chatHistory: ChatMessage[];
+  aiPaneOpen: boolean;
+  activeNudges: ActiveNudge[];
 }
 
 export interface IRubricCriterion {

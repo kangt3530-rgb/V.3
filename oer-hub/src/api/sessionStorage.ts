@@ -75,6 +75,9 @@ function normalizeSession(raw: unknown): IReviewSession {
     oerScrollY: typeof s.oerScrollY === "number" ? s.oerScrollY : 0,
     lastSaved: s.lastSaved ?? new Date().toISOString(),
     status: s.status === "submitted" ? "submitted" : "draft",
+    chatHistory: Array.isArray(s.chatHistory) ? s.chatHistory : [],
+    aiPaneOpen: typeof s.aiPaneOpen === "boolean" ? s.aiPaneOpen : false,
+    activeNudges: Array.isArray(s.activeNudges) ? s.activeNudges : [],
   };
 }
 

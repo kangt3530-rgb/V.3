@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { saveSession } from "../api";
 import { layout } from "../design/tokens";
+import type { ChatMessage, AIPreferences, CommentNudgeContext } from "../api/ai";
+import { DEFAULT_AI_PREFERENCES } from "../api/ai";
 import type {
   IAnnotation,
   ICriterionRating,
@@ -51,6 +53,39 @@ interface ReviewState extends IReviewSession {
   setLastSaved: (iso: string) => void;
   persistSessionNow: () => void;
 
+  addChatMessage: (message: ChatMessage) => void;
+  setChatHistory: (messages: ChatMessage[]) => void;
+  toggleAIPane: () => void;
+  setAIPaneOpen: (open: boolean) => void;
+
+  // R1 runtime-only state (not persisted to IReviewSession)
+  activeRubricTerms: Set<string>;
+  rubricFullText: string;
+  pendingLookup: { term: string } | null;
+  setRubricContext: (terms: Set<string>, fullText: string) => void;
+  dispatchLookup: (term: string) => void;
+  clearPendingLookup: () => void;
+  toggleLookupCollapse: (index: number) => void;
+
+  // R4 runtime-only state (not persisted)
+  activeCriterionId: string | null;
+  activeCriterionTitle: string | null;
+  setActiveCriterion: (id: string | null, title: string | null) => void;
+
+  // R7 runtime-only (not persisted)
+  activeVoiceFieldId: string | null;
+  setActiveVoiceField: (id: string | null) => void;
+
+  // AI preferences (runtime-only, not persisted with session)
+  aiPreferences: AIPreferences;
+  setAIPreferences: (prefs: Partial<AIPreferences>) => void;
+
+  // R3+R16 comment nudge (runtime-only)
+  activeCommentNudge: CommentNudgeContext | null;
+  showCommentNudgeInChat: (context: CommentNudgeContext) => void;
+  clearActiveCommentNudge: () => void;
+  appendToCommentField: (criterionId: string, fieldType: "ni" | "exceeds", text: string) => void;
+
   isReadyToSubmit: (criteriaIds: string[]) => boolean;
   isCriterionAddressed: (criterionId: string) => boolean;
 }
@@ -65,6 +100,9 @@ const defaultSession = (): Omit<
   oerScrollY: 0,
   lastSaved: new Date().toISOString(),
   status: "draft",
+  chatHistory: [],
+  aiPaneOpen: false,
+  activeNudges: [],
 });
 
 export const useReviewStore = create<ReviewState>((set, get) => ({
@@ -74,6 +112,24 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   oerSource: "",
   rubricTemplateId: "accessibility",
   ...defaultSession(),
+
+  // R1 runtime-only
+  activeRubricTerms: new Set<string>(),
+  rubricFullText: "",
+  pendingLookup: null,
+
+  // R4 runtime-only
+  activeCriterionId: null,
+  activeCriterionTitle: null,
+
+  // R7 runtime-only
+  activeVoiceFieldId: null,
+
+  // AI preferences runtime-only
+  aiPreferences: { ...DEFAULT_AI_PREFERENCES },
+
+  // R3+R16 runtime-only
+  activeCommentNudge: null,
 
   initSession: (session) => set({ ...session }),
 
@@ -178,20 +234,83 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     const now = new Date().toISOString();
     const s = get();
     saveSession({
-      taskId: s.taskId,
-      oerId: s.oerId,
-      oerType: s.oerType,
-      oerSource: s.oerSource,
+      taskId:           s.taskId,
+      oerId:            s.oerId,
+      oerType:          s.oerType,
+      oerSource:        s.oerSource,
       rubricTemplateId: s.rubricTemplateId,
-      annotations: s.annotations,
-      ratings: s.ratings,
-      splitRatio: s.splitRatio,
-      oerScrollY: s.oerScrollY,
-      lastSaved: now,
-      status: s.status,
+      annotations:      s.annotations,
+      ratings:          s.ratings,
+      splitRatio:       s.splitRatio,
+      oerScrollY:       s.oerScrollY,
+      lastSaved:        now,
+      status:           s.status,
+      chatHistory:      s.chatHistory,
+      aiPaneOpen:       s.aiPaneOpen,
+      activeNudges:     s.activeNudges,
     });
     set({ lastSaved: now });
   },
+
+  addChatMessage: (message) =>
+    set((s) => {
+      const next = [...s.chatHistory, message];
+      return { chatHistory: next.length > 50 ? next.slice(next.length - 50) : next };
+    }),
+
+  setChatHistory: (messages) => set({ chatHistory: messages }),
+
+  toggleAIPane: () => set((s) => ({ aiPaneOpen: !s.aiPaneOpen })),
+
+  setAIPaneOpen: (open) => set({ aiPaneOpen: open }),
+
+  setRubricContext: (terms, fullText) =>
+    set({ activeRubricTerms: terms, rubricFullText: fullText }),
+
+  dispatchLookup: (term) =>
+    set((s) => {
+      const collapsed = s.chatHistory.map((m) =>
+        m.type === "term_lookup" ? { ...m, collapsed: true } : m
+      );
+      const withUser = [...collapsed, { role: "user" as const, content: `Look up: ${term}` }];
+      const capped = withUser.length > 50 ? withUser.slice(withUser.length - 50) : withUser;
+      return { chatHistory: capped, aiPaneOpen: true, pendingLookup: { term } };
+    }),
+
+  clearPendingLookup: () => set({ pendingLookup: null }),
+
+  setActiveCriterion: (id, title) => set({ activeCriterionId: id, activeCriterionTitle: title }),
+
+  setActiveVoiceField: (id) => set({ activeVoiceFieldId: id }),
+
+  setAIPreferences: (prefs) =>
+    set((s) => ({ aiPreferences: { ...s.aiPreferences, ...prefs } })),
+
+  showCommentNudgeInChat: (context) =>
+    set({ activeCommentNudge: context, aiPaneOpen: true }),
+
+  clearActiveCommentNudge: () => set({ activeCommentNudge: null }),
+
+  appendToCommentField: (criterionId, fieldType, text) =>
+    set((s) => {
+      const key = fieldType === "ni" ? "needsImprovementText" : "exceedsText";
+      const current = s.ratings[criterionId]?.[key] ?? "";
+      const updated = current.trim() ? `${current.trim()} ${text}` : text;
+      return {
+        ratings: {
+          ...s.ratings,
+          [criterionId]: mergeRating({ ...s.ratings[criterionId], [key]: updated }),
+        },
+      };
+    }),
+
+  toggleLookupCollapse: (index) =>
+    set((s) => {
+      const chatHistory = s.chatHistory.map((m, i) =>
+        i === index ? { ...m, collapsed: !m.collapsed } : m
+      );
+      return { chatHistory };
+    }),
 
   isCriterionAddressed: (criterionId) => {
     const r = mergeRating(get().ratings[criterionId]);

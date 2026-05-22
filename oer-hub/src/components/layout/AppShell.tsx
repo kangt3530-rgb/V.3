@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { TopNav } from "./TopNav";
+import { useSessionStore } from "../../store/sessionStore";
+import { useAIPrefsStore } from "../../store/aiPrefsStore";
 
 interface AppShellProps {
   children: ReactNode;
@@ -8,6 +10,13 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, fullScreen = false }: AppShellProps) {
+  const userId = useSessionStore((s) => s.userId);
+  const loadForUser = useAIPrefsStore((s) => s.loadForUser);
+
+  useEffect(() => {
+    loadForUser(userId);
+  }, [userId, loadForUser]);
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-surface">
       <TopNav />
