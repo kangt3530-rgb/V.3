@@ -70,6 +70,23 @@ export function AuthorDashboard() {
               <div key={i} className="h-36 bg-surface-container-low rounded-md animate-pulse" />
             ))}
           </div>
+        ) : oers.length === 0 ? (
+          // Stage 5 first-action-primed empty state
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <span className="material-symbols-outlined text-[48px] text-outline/40 mb-4" aria-hidden="true">
+              library_add
+            </span>
+            <h2 className="font-headline text-title-lg text-primary mb-2">
+              Submit your first resource
+            </h2>
+            <p className="text-body-md text-on-surface-variant max-w-xs mb-6">
+              Share an OER you've created and get structured expert feedback to
+              help it meet professional quality standards. Takes about 5 minutes.
+            </p>
+            <Link to="/submit">
+              <Button icon="add" size="md">New Submission</Button>
+            </Link>
+          </div>
         ) : (
           <div className="space-y-4">
             {oers.map((oer) => (

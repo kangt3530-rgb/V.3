@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getActiveTasks, getPoolTasks } from "../../api";
+import { getActiveTasks, getMatchedPoolTasks } from "../../api";
 import type { ITask } from "../../api/types";
+import { useSessionStore } from "../../store/sessionStore";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -15,18 +16,32 @@ const RUBRIC_LABELS: Record<string, string> = {
   udl:            "UDL",
 };
 
+// Notification frequency options for the zero-match empty state
+const NOTIFY_OPTIONS = ["Daily digest", "Weekly digest", "Off"] as const;
+type NotifyFreq = (typeof NOTIFY_OPTIONS)[number];
+
 export function ReviewerTaskCenter() {
+  const discipline          = useSessionStore((s) => s.discipline);
+  const expertiseTags       = useSessionStore((s) => s.reviewer.expertiseTags);
+  const rubricSpecializations = useSessionStore((s) => s.reviewer.rubricSpecializations);
+
   const [active, setActive] = useState<ITask[]>([]);
   const [pool, setPool]     = useState<ITask[]>([]);
+  const [totalMatched, setTotalMatched] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [notifyFreq, setNotifyFreq] = useState<NotifyFreq>("Weekly digest");
 
   useEffect(() => {
-    Promise.all([getActiveTasks(), getPoolTasks()]).then(([a, p]) => {
+    Promise.all([
+      getActiveTasks(),
+      getMatchedPoolTasks({ discipline, expertiseTags, rubricSpecializations }),
+    ]).then(([a, { tasks, totalMatched: total }]) => {
       setActive(a);
-      setPool(p);
+      setPool(tasks);
+      setTotalMatched(total);
       setLoading(false);
     });
-  }, []);
+  }, [discipline, expertiseTags, rubricSpecializations]);
 
   return (
     <div className="h-full overflow-y-auto bg-surface pt-16">
@@ -46,7 +61,9 @@ export function ReviewerTaskCenter() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1, 2].map((i) => <div key={i} className="h-32 bg-surface-container-low rounded-md animate-pulse" />)}
+            {[1, 2].map((i) => (
+              <div key={i} className="h-32 bg-surface-container-low rounded-md animate-pulse" />
+            ))}
           </div>
         ) : (
           <div className="space-y-10">
@@ -55,7 +72,9 @@ export function ReviewerTaskCenter() {
               <h2 className="font-headline text-title-lg text-primary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">edit_note</span>
                 My Active Reviews
-                <span className="ml-auto text-label-md font-label text-on-surface-variant">{active.length} active</span>
+                <span className="ml-auto text-label-md font-label text-on-surface-variant">
+                  {active.length} active
+                </span>
               </h2>
               {active.length === 0 ? (
                 <EmptyState message="No active reviews. Claim a task from the pool below." />
@@ -70,20 +89,42 @@ export function ReviewerTaskCenter() {
 
             {/* Task pool */}
             <section>
-              <h2 className="font-headline text-title-lg text-primary mb-4 flex items-center gap-2">
+              <h2 className="font-headline text-title-lg text-primary mb-2 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">inbox</span>
                 Task Pool
-                <span className="ml-auto text-label-md font-label text-on-surface-variant">{pool.length} available</span>
+                <span className="ml-auto text-label-md font-label text-on-surface-variant">
+                  {pool.length} available
+                </span>
               </h2>
+
+              {/* Match hero — shown when at least one match */}
+              {totalMatched > 0 && (
+                <p className="text-body-md text-on-surface-variant mb-4">
+                  We found{" "}
+                  <span className="font-semibold text-primary">{totalMatched}</span>{" "}
+                  {totalMatched === 1 ? "task" : "tasks"} that match your expertise.
+                </p>
+              )}
+
               {pool.length === 0 ? (
-                <EmptyState message="No tasks available at the moment. Check back soon." />
+                <ZeroMatchEmptyState
+                  notifyFreq={notifyFreq}
+                  onNotifyChange={setNotifyFreq}
+                />
               ) : (
                 <div className="space-y-4">
                   {pool.map((task) => (
-                    <PoolTaskCard key={task.id} task={task} onClaim={() => {
-                      setPool((p) => p.filter((t) => t.id !== task.id));
-                      setActive((a) => [...a, { ...task, status: "claimed", completionPercent: 0 }]);
-                    }} />
+                    <PoolTaskCard
+                      key={task.id}
+                      task={task}
+                      onClaim={() => {
+                        setPool((p) => p.filter((t) => t.id !== task.id));
+                        setActive((a) => [
+                          ...a,
+                          { ...task, status: "claimed", completionPercent: 0 },
+                        ]);
+                      }}
+                    />
                   ))}
                 </div>
               )}
@@ -137,7 +178,13 @@ function ActiveTaskCard({ task }: { task: ITask }) {
   );
 }
 
-function PoolTaskCard({ task, onClaim }: { task: ITask; onClaim: () => void }) {
+function PoolTaskCard({
+  task,
+  onClaim,
+}: {
+  task: ITask;
+  onClaim: () => void;
+}) {
   return (
     <Card surface="low" shadow={false} className="p-6">
       <div className="flex items-start justify-between gap-4">
@@ -157,7 +204,8 @@ function PoolTaskCard({ task, onClaim }: { task: ITask; onClaim: () => void }) {
             {task.oer.title}
           </h3>
           <p className="text-body-sm text-on-surface-variant">
-            {task.oer.subject} · Submitted {new Date(task.oer.submittedAt).toLocaleDateString()}
+            {task.oer.subject} · Submitted{" "}
+            {new Date(task.oer.submittedAt).toLocaleDateString()}
           </p>
         </div>
 
@@ -173,6 +221,56 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="py-10 text-center text-body-md text-on-surface-variant bg-surface-container-low rounded-md">
       {message}
+    </div>
+  );
+}
+
+function ZeroMatchEmptyState({
+  notifyFreq,
+  onNotifyChange,
+}: {
+  notifyFreq: NotifyFreq;
+  onNotifyChange: (freq: NotifyFreq) => void;
+}) {
+  return (
+    <div className="py-10 px-6 text-center bg-surface-container-low rounded-md flex flex-col items-center gap-4">
+      <span
+        className="material-symbols-outlined text-[40px] text-outline/40"
+        aria-hidden="true"
+      >
+        inbox
+      </span>
+      <div>
+        <p className="text-body-md text-on-surface-variant font-medium mb-1">
+          No tasks match your expertise yet
+        </p>
+        <p className="text-body-sm text-on-surface-variant max-w-xs mx-auto">
+          Tasks matching your expertise will show up here as authors submit.
+          We'll notify you when there's a match.
+        </p>
+      </div>
+
+      {/* Notification frequency control */}
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor="notify-freq"
+          className="text-label-sm font-label text-on-surface-variant"
+        >
+          Notify me:
+        </label>
+        <select
+          id="notify-freq"
+          value={notifyFreq}
+          onChange={(e) => onNotifyChange(e.target.value as NotifyFreq)}
+          className="text-label-sm font-label text-on-surface border border-outline-variant rounded-md px-2 py-1 bg-surface-container-low outline-none focus:border-primary transition-colors cursor-pointer"
+        >
+          {NOTIFY_OPTIONS.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
