@@ -58,6 +58,62 @@ export async function getPoolTasks(): Promise<ITask[]> {
   return Promise.resolve([...MOCK_POOL_TASKS]);
 }
 
+export interface MatchedPoolTasksFilters {
+  discipline: string;
+  expertiseTags: string[];
+  rubricSpecializations: RubricTemplateId[];
+}
+
+export interface MatchedPoolTasksResult {
+  tasks: ITask[];
+  totalMatched: number;
+}
+
+/**
+ * Returns pool tasks filtered by the reviewer's rubric specializations and
+ * expertise tags/discipline.
+ * In mock mode: filters MOCK_POOL_TASKS by rubricTemplateId membership.
+ * If rubricSpecializations is empty, returns all tasks (no filter applied).
+ */
+export async function getMatchedPoolTasks(
+  filters: MatchedPoolTasksFilters,
+): Promise<MatchedPoolTasksResult> {
+  const { rubricSpecializations, expertiseTags, discipline } = filters;
+
+  let tasks = [...MOCK_POOL_TASKS];
+
+  // Filter by rubric specialization if the reviewer has declared any
+  if (rubricSpecializations.length > 0) {
+    tasks = tasks.filter((t) =>
+      rubricSpecializations.includes(t.rubricTemplateId),
+    );
+  }
+
+  // Soft-filter by expertise tags + discipline: prefer tasks whose OER subject
+  // matches, but include all rubric-matched tasks when no tags are set.
+  if (expertiseTags.length > 0 || discipline) {
+    const keywords = [
+      ...expertiseTags.map((t) => t.toLowerCase()),
+      discipline.toLowerCase(),
+    ].filter(Boolean);
+
+    // Score each task: 1 point per keyword match in OER subject, author, title
+    const scored = tasks.map((t) => {
+      const haystack =
+        `${t.oer.subject} ${t.oer.title} ${t.oer.author}`.toLowerCase();
+      const score = keywords.filter((kw) => haystack.includes(kw)).length;
+      return { task: t, score };
+    });
+
+    // Include all tasks that passed rubric filter; sort keyword-matched first
+    tasks = scored
+      .sort((a, b) => b.score - a.score)
+      .map(({ task }) => task);
+  }
+
+  return Promise.resolve({ tasks, totalMatched: tasks.length });
+}
+
 export async function getTask(taskId: string): Promise<ITask | null> {
   const all = [...MOCK_ACTIVE_TASKS, ...MOCK_POOL_TASKS];
   return Promise.resolve(all.find((t) => t.id === taskId) ?? DEMO_TASK);
