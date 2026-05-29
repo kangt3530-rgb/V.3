@@ -59,11 +59,29 @@ export default {
         "on-error":                  "#ffffff",
         "error-container":           "#ffdad6",
         "on-error-container":        "#93000a",
+
+        // ── Opennote tokens — used exclusively in Block O onboarding screens ──
+        "parchment":       "#fffdf8",
+        "ink-black":       "#0a0a0a",
+        "slate-gray":      "#474747",
+        "ash-gray":        "#8c8c8c",
+        "whisper-border":  "#e5e5e5",
+        "ghost-border":    "#d1d1d1",
+        "burnt-umber":     "#512906",
+        "blue-violet":     "#242d64",
+        "forest-green":    "#0c3b1a",
+        "crimson-blush":   "#5e0831",
+        "goldenrod":       "#ffc934",
+        "tinted-selected": "#fefaf0",
+        "tinted-info":     "#fef5de",
       },
       fontFamily: {
-        "headline": ["Newsreader", "Georgia", "serif"],
-        "body":     ["Inter", "system-ui", "sans-serif"],
-        "label":    ["Inter", "system-ui", "sans-serif"],
+        "headline":   ["Newsreader", "Georgia", "serif"],
+        "body":       ["Inter", "system-ui", "sans-serif"],
+        "label":      ["Inter", "system-ui", "sans-serif"],
+        // Opennote fonts — Block O onboarding screens
+        "iowanold":   ["Newsreader", "'Iowan Old Style'", "Georgia", "serif"],
+        "suisseintl": ["Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "0.125rem",
