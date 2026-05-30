@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { OnboardingShell } from "../OnboardingShell";
-import { acknowledgeWelcome } from "../../../api/onboarding";
+import { acknowledgeWelcome, completeOnboarding } from "../../../api/onboarding";
 import { useOnboardingStore } from "../../../store/onboardingStore";
 import { trackEvent } from "../../../lib/analytics";
 
@@ -80,6 +80,19 @@ export function WelcomeScreen() {
           </p>
         </div>
       </div>
+
+      {import.meta.env.DEV && (
+        <button
+          type="button"
+          onClick={async () => {
+            await completeOnboarding();
+            navigate("/author");
+          }}
+          className="fixed bottom-6 right-7 z-10 text-[12px] text-slate-gray hover:text-ink-black transition-colors"
+        >
+          Skip onboarding, go to dashboard
+        </button>
+      )}
     </OnboardingShell>
   );
 }

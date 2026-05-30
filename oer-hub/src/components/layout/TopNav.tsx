@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useSessionStore } from "../../store/sessionStore";
 import { useReviewStore } from "../../store/reviewStore";
 import type { UserRole } from "../../api/types";
+import { onboardingKeys, getUserId } from "../../features/block-o/onboardingUtils";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   author:      "Author",
@@ -65,6 +66,19 @@ export function TopNav() {
 
       {/* Right: Draft status + Role switcher + Avatar */}
       <div className="flex items-center gap-5">
+        {import.meta.env.DEV && (
+          <button
+            onClick={() => {
+              const uid = getUserId();
+              localStorage.removeItem(onboardingKeys.complete(uid));
+              localStorage.removeItem(onboardingKeys.draft(uid));
+              navigate("/onboarding/welcome");
+            }}
+            className="text-label-sm text-on-surface-variant hover:text-primary transition-colors"
+          >
+            Demo: Run onboarding
+          </button>
+        )}
         {/* Auto-save indicator — only shown inside a review session */}
         {status === "draft" && savedTime && (
           <div className="hidden sm:flex items-center gap-1.5 text-label-sm text-on-surface-variant">
