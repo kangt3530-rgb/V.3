@@ -48,7 +48,7 @@ export function OnboardingShell({
   }
 
   return (
-    <div className="bg-parchment font-suisseintl">
+    <div className="min-h-screen bg-parchment font-suisseintl flex flex-col">
 
       {/* ── Sticky top bar ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-parchment">
@@ -99,30 +99,31 @@ export function OnboardingShell({
         )}
       </div>
 
-      {/* ── Screen content ────────────────────────────────────────────────── */}
-      <main>
-        {children}
-      </main>
+      {/* ── Content + Continue: vertically centered in remaining viewport ─── */}
+      <div className="flex-1 flex flex-col justify-center">
+        <main>
+          {children}
+        </main>
 
-      {/* ── Continue action area ──────────────────────────────────────────── */}
-      {!hideFoot && onContinue && (
-        <div className="flex justify-center px-7 mt-8 pb-12">
-          <button
-            type="button"
-            onClick={onContinue}
-            disabled={!continueEnabled}
-            className={[
-              "w-full max-w-[480px] py-3.5 rounded-[10px] text-[15px] font-medium transition-colors",
-              continueEnabled
-                ? "bg-burnt-umber text-white hover:bg-[#3d1e04] active:bg-[#2b1503]"
-                : "bg-whisper-border text-ash-gray cursor-not-allowed",
-            ].join(" ")}
-          >
-            {continueLabel}
-            {continueEnabled && <span className="ml-1">→</span>}
-          </button>
-        </div>
-      )}
+        {!hideFoot && onContinue && (
+          <div className="flex justify-center px-7 mt-8 pb-10">
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={!continueEnabled}
+              className={[
+                "w-full max-w-[480px] py-3.5 rounded-[10px] text-[15px] font-medium transition-colors",
+                continueEnabled
+                  ? "bg-burnt-umber text-white hover:bg-[#3d1e04] active:bg-[#2b1503]"
+                  : "bg-whisper-border text-ash-gray cursor-not-allowed",
+              ].join(" ")}
+            >
+              {continueLabel}
+              {continueEnabled && <span className="ml-1">→</span>}
+            </button>
+          </div>
+        )}
+      </div>
 
     </div>
   );
