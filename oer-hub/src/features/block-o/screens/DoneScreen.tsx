@@ -25,32 +25,36 @@ export function DoneScreen() {
   const isReviewer = roles.includes("reviewer");
   const isBoth     = isAuthor && isReviewer;
 
-  async function handleEnter() {
-    // Hydrate session store with completed profile
+  const effectivePrimary  = primaryRole ?? (isReviewer ? "reviewer" : "author");
+  const primaryIsReviewer = effectivePrimary === "reviewer";
+  const primaryDest       = primaryIsReviewer ? "/reviewer" : "/author";
+  const secondaryDest     = primaryIsReviewer ? "/author"   : "/reviewer";
+
+  // Matched task count — placeholder until task pool API is wired up
+  const matchedTaskCount = 0;
+
+  async function finishOnboarding(dest: "/author" | "/reviewer") {
     completeStore({
       roles,
-      primaryRole: primaryRole ?? (isReviewer ? "reviewer" : "author"),
+      primaryRole: effectivePrimary,
       displayName: profile.displayName,
       institution: profile.institution,
       discipline:  profile.discipline,
       roleTitle:   profile.roleTitle,
       reviewer: isReviewer
         ? {
-            type:                 reviewer.type,
-            expertiseTags:        reviewer.expertiseTags,
+            type:                  reviewer.type,
+            expertiseTags:         reviewer.expertiseTags,
             rubricSpecializations: reviewer.rubricSpecializations,
-            licenseAcceptedAt:    reviewer.licenseAcceptedAt,
-            licenseVersion:       reviewer.licenseVersion,
+            licenseAcceptedAt:     reviewer.licenseAcceptedAt,
+            licenseVersion:        reviewer.licenseVersion,
           }
         : undefined,
     });
 
     await completeOnboarding();
     reset();
-
     trackEvent("onboarding.completed", { roles, primaryRole });
-
-    const dest = primaryRole === "reviewer" ? "/reviewer" : "/author";
     navigate(dest, { replace: true });
   }
 
@@ -79,20 +83,16 @@ export function DoneScreen() {
               You're all set, {profile.displayName.split(" ")[0] || "there"}!
             </h1>
 
-            {isBoth ? (
+            {primaryIsReviewer ? (
               <p className="text-[15px] text-slate-gray leading-relaxed max-w-sm mx-auto">
-                Your Author and Reviewer workspaces are ready. You can switch
-                between them using the workspace switcher in the top corner.
-              </p>
-            ) : isReviewer ? (
-              <p className="text-[15px] text-slate-gray leading-relaxed max-w-sm mx-auto">
-                Your Reviewer workspace is ready. Tasks matching your expertise
-                are waiting in the Task Center.
+                {matchedTaskCount > 0
+                  ? `We found ${matchedTaskCount} tasks that match your expertise. Take a look whenever you're ready.`
+                  : "Tasks matching your expertise are waiting in your task pool. Take a look whenever you're ready."
+                }
               </p>
             ) : (
               <p className="text-[15px] text-slate-gray leading-relaxed max-w-sm mx-auto">
-                Your Author workspace is ready. Submit your first resource for
-                peer review — it takes about 5 minutes.
+                Ready to submit your first resource? Walking through it takes about 5 minutes.
               </p>
             )}
           </div>
@@ -131,16 +131,28 @@ export function DoneScreen() {
             )}
           </ul>
 
-          {/* CTA */}
-          <button
-            type="button"
-            onClick={handleEnter}
-            className="w-full max-w-[280px] py-3.5 rounded-[10px] bg-burnt-umber text-white font-suisseintl text-[15px] font-medium hover:bg-[#3d1e04] active:bg-[#2b1503] transition-colors"
-          >
-            {primaryRole === "reviewer"
-              ? "Go to Task Center →"
-              : "Go to dashboard →"}
-          </button>
+          {/* CTAs */}
+          <div className="flex flex-col items-center gap-4 w-full">
+            <button
+              type="button"
+              onClick={() => finishOnboarding(primaryDest)}
+              className="w-full max-w-[280px] py-3.5 rounded-[10px] bg-burnt-umber text-white font-suisseintl text-[15px] font-medium hover:bg-[#3d1e04] active:bg-[#2b1503] transition-colors"
+            >
+              {primaryIsReviewer ? "Browse my task pool →" : "Submit my first resource →"}
+            </button>
+
+            {isBoth && (
+              <button
+                type="button"
+                onClick={() => finishOnboarding(secondaryDest)}
+                className="text-[14px] text-slate-gray hover:text-ink-black transition-colors"
+              >
+                {primaryIsReviewer
+                  ? "Or submit your first resource as an Author →"
+                  : "Or browse review tasks matching your expertise →"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </OnboardingShell>
