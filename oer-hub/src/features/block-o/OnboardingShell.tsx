@@ -2,17 +2,13 @@ import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "./ProgressBar";
 import { useOnboardingStore } from "../../store/onboardingStore";
-import { getPrevStep, STEP_PATHS } from "./onboardingUtils";
+import { getPrevStep, getStepIndex, getVisibleSteps, STEP_PATHS } from "./onboardingUtils";
 import type { OnboardingRole } from "./onboardingUtils";
 import { getAddingRole } from "../../api/onboarding";
 
 interface OnboardingShellProps {
   children: ReactNode;
-  /**
-   * When true, the footer Back/Continue row is hidden (e.g. Welcome screen
-   * manages its own CTA). Each screen controls Continue via its own button;
-   * Back is always available here except on the welcome screen.
-   */
+  /** When true, the Continue action area is hidden (Welcome and Done manage their own CTAs). */
   hideFoot?: boolean;
   /** Label shown on the Continue button. Defaults to "Continue →". */
   continueLabel?: string;
@@ -29,12 +25,18 @@ export function OnboardingShell({
   continueEnabled = true,
   onContinue,
 }: OnboardingShellProps) {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
   const currentStep = useOnboardingStore((s) => s.currentStep);
   const roles       = useOnboardingStore((s) => s.roles) as OnboardingRole[];
 
   const isAddingRole = !!getAddingRole();
+  const isDone       = currentStep === "done";
   const isWelcome    = currentStep === "welcome";
+  const showBack     = !isWelcome && !isDone && !isAddingRole;
+
+  const visibleSteps = getVisibleSteps(roles);
+  const stepIndex    = getStepIndex(currentStep, roles);
+  const stepTotal    = visibleSteps.length;
 
   function handleBack() {
     if (isAddingRole) {
@@ -45,35 +47,51 @@ export function OnboardingShell({
     if (prev && STEP_PATHS[prev]) navigate(STEP_PATHS[prev]);
   }
 
-  const showBack = !isWelcome;
-
   return (
     <div className="bg-parchment font-suisseintl">
-      {/* ── Sticky header: brand + progress ──────────────────────────────── */}
+
+      {/* ── Sticky top bar ────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-parchment">
-        <header className="flex items-center justify-between px-7 pt-6 pb-0">
-          {/* Brand wordmark */}
-          <span className="font-iowanold text-[18px] font-medium text-ink-black tracking-tight select-none">
+        <header className="grid grid-cols-3 items-center px-7 pt-6 pb-0">
+
+          {/* Far left: Back link */}
+          <div>
+            {showBack && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="text-[14px] text-slate-gray hover:text-ink-black transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                Back
+              </button>
+            )}
+            {isAddingRole && (
+              <button
+                type="button"
+                onClick={() => navigate("/reviewer/settings")}
+                className="text-[14px] text-slate-gray hover:text-ink-black transition-colors flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-[15px]">arrow_back</span>
+                Back to Settings
+              </button>
+            )}
+          </div>
+
+          {/* Center: Brand wordmark */}
+          <span className="font-iowanold text-[18px] font-medium text-ink-black tracking-tight select-none text-center">
             Open4Review
           </span>
 
-          {/* Add-role context link or step counter */}
-          {isAddingRole ? (
-            <button
-              onClick={() => navigate("/reviewer/settings")}
-              className="text-[13px] text-slate-gray hover:text-ink-black transition-colors flex items-center gap-1"
-            >
-              <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-              Back to Settings
-            </button>
-          ) : (
-            <span className="text-[13px] text-ash-gray select-none">
-              {/* intentionally empty — progress is shown in the bar */}
-            </span>
-          )}
+          {/* Far right: Step counter */}
+          <span className="text-[13px] text-ash-gray select-none text-right">
+            {stepIndex >= 0 && stepTotal > 0
+              ? `Step ${stepIndex + 1} of ${stepTotal}`
+              : ""}
+          </span>
         </header>
 
-        {/* ── Progress bar ───────────────────────────────────────────────── */}
+        {/* Progress bar */}
         {!isAddingRole && (
           <div className="px-0 pt-4">
             <ProgressBar currentStep={currentStep} roles={roles} />
@@ -81,47 +99,31 @@ export function OnboardingShell({
         )}
       </div>
 
-      {/* ── Screen content ───────────────────────────────────────────────── */}
+      {/* ── Screen content ────────────────────────────────────────────────── */}
       <main>
         {children}
       </main>
 
-      {/* ── Footer: Back / Continue ──────────────────────────────────────── */}
-      {!hideFoot && (
-        <footer className="border-t border-whisper-border bg-parchment px-7 py-5 flex items-center justify-between gap-4">
-          {showBack ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              className="text-[14px] text-slate-gray hover:text-ink-black transition-colors flex items-center gap-1.5"
-            >
-              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-              Back
-            </button>
-          ) : (
-            <span />
-          )}
-
-          {onContinue && (
-            <button
-              type="button"
-              onClick={onContinue}
-              disabled={!continueEnabled}
-              className={[
-                "px-6 py-3 rounded-[10px] text-[14px] font-medium transition-colors",
-                continueEnabled
-                  ? "bg-burnt-umber text-white hover:bg-[#3d1e04] active:bg-[#2b1503]"
-                  : "bg-whisper-border text-ash-gray cursor-not-allowed",
-              ].join(" ")}
-            >
-              {continueLabel}
-              {continueEnabled && (
-                <span className="ml-1 inline-block">→</span>
-              )}
-            </button>
-          )}
-        </footer>
+      {/* ── Continue action area ──────────────────────────────────────────── */}
+      {!hideFoot && onContinue && (
+        <div className="flex justify-center px-7 mt-8 pb-12">
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!continueEnabled}
+            className={[
+              "w-full max-w-[480px] py-3.5 rounded-[10px] text-[15px] font-medium transition-colors",
+              continueEnabled
+                ? "bg-burnt-umber text-white hover:bg-[#3d1e04] active:bg-[#2b1503]"
+                : "bg-whisper-border text-ash-gray cursor-not-allowed",
+            ].join(" ")}
+          >
+            {continueLabel}
+            {continueEnabled && <span className="ml-1">→</span>}
+          </button>
+        </div>
       )}
+
     </div>
   );
 }
