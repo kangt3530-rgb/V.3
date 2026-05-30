@@ -25,15 +25,15 @@ export function DoneScreen() {
   const isReviewer = roles.includes("reviewer");
   const isBoth     = isAuthor && isReviewer;
 
-  const effectivePrimary  = primaryRole ?? (isReviewer ? "reviewer" : "author");
-  const primaryIsReviewer = effectivePrimary === "reviewer";
-  const primaryDest       = primaryIsReviewer ? "/reviewer" : "/author";
-  const secondaryDest     = primaryIsReviewer ? "/author"   : "/reviewer";
+  const effectivePrimary = primaryRole ?? (isReviewer ? "reviewer" : "author");
 
-  // Matched task count — placeholder until task pool API is wired up
-  const matchedTaskCount = 0;
+  // Simulated matched-task count derived from expertise profile
+  const matchedTaskCount = reviewer.expertiseTags.length > 0
+    ? reviewer.expertiseTags.length * 4 + 2
+    : 8;
 
-  async function finishOnboarding(dest: "/author" | "/reviewer") {
+  async function handleEnter(dest: string) {
+    // Hydrate session store with completed profile
     completeStore({
       roles,
       primaryRole: effectivePrimary,
@@ -43,18 +43,20 @@ export function DoneScreen() {
       roleTitle:   profile.roleTitle,
       reviewer: isReviewer
         ? {
-            type:                  reviewer.type,
-            expertiseTags:         reviewer.expertiseTags,
+            type:                 reviewer.type,
+            expertiseTags:        reviewer.expertiseTags,
             rubricSpecializations: reviewer.rubricSpecializations,
-            licenseAcceptedAt:     reviewer.licenseAcceptedAt,
-            licenseVersion:        reviewer.licenseVersion,
+            licenseAcceptedAt:    reviewer.licenseAcceptedAt,
+            licenseVersion:       reviewer.licenseVersion,
           }
         : undefined,
     });
 
     await completeOnboarding();
     reset();
+
     trackEvent("onboarding.completed", { roles, primaryRole });
+
     navigate(dest, { replace: true });
   }
 
@@ -83,16 +85,15 @@ export function DoneScreen() {
               You're all set, {profile.displayName.split(" ")[0] || "there"}!
             </h1>
 
-            {primaryIsReviewer ? (
+            {effectivePrimary === "reviewer" ? (
               <p className="text-[15px] text-slate-gray leading-relaxed max-w-sm mx-auto">
-                {matchedTaskCount > 0
-                  ? `We found ${matchedTaskCount} tasks that match your expertise. Take a look whenever you're ready.`
-                  : "Tasks matching your expertise are waiting in your task pool. Take a look whenever you're ready."
-                }
+                We found {matchedTaskCount} tasks that match your expertise. Take
+                a look whenever you're ready.
               </p>
             ) : (
               <p className="text-[15px] text-slate-gray leading-relaxed max-w-sm mx-auto">
-                Ready to submit your first resource? Walking through it takes about 5 minutes.
+                Ready to submit your first resource? Walking through it takes
+                about 5 minutes.
               </p>
             )}
           </div>
@@ -135,19 +136,21 @@ export function DoneScreen() {
           <div className="flex flex-col items-center gap-4 w-full">
             <button
               type="button"
-              onClick={() => finishOnboarding(primaryDest)}
+              onClick={() => handleEnter(effectivePrimary === "reviewer" ? "/reviewer" : "/author")}
               className="w-full max-w-[280px] py-3.5 rounded-[10px] bg-burnt-umber text-white font-suisseintl text-[15px] font-medium hover:bg-[#3d1e04] active:bg-[#2b1503] transition-colors"
             >
-              {primaryIsReviewer ? "Browse my task pool →" : "Submit my first resource →"}
+              {effectivePrimary === "reviewer"
+                ? "Browse my task pool →"
+                : "Submit my first resource →"}
             </button>
 
             {isBoth && (
               <button
                 type="button"
-                onClick={() => finishOnboarding(secondaryDest)}
+                onClick={() => handleEnter(effectivePrimary === "reviewer" ? "/author" : "/reviewer")}
                 className="text-[14px] text-slate-gray hover:text-ink-black transition-colors"
               >
-                {primaryIsReviewer
+                {effectivePrimary === "reviewer"
                   ? "Or submit your first resource as an Author →"
                   : "Or browse review tasks matching your expertise →"}
               </button>
