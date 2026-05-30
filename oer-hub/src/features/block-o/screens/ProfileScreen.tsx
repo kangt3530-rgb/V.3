@@ -115,7 +115,7 @@ export function ProfileScreen() {
               type="text"
               label="Institution or organization"
               value={profile.institution}
-              placeholder="e.g. Stanford University"
+              placeholder="e.g. Maricopa Community Colleges"
               required
               error={errors.institution}
               onChange={(v) => setProfile({ institution: v })}
