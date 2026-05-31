@@ -4,6 +4,7 @@ import { useSessionStore } from "../../store/sessionStore";
 import { useReviewStore } from "../../store/reviewStore";
 import type { UserRole } from "../../api/types";
 import { onboardingKeys, getUserId } from "../../features/block-o/onboardingUtils";
+import { useOnboardingStore } from "../../store/onboardingStore";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   author:      "Author",
@@ -19,8 +20,9 @@ const ROLE_ROUTE: Record<UserRole, string> = {
 
 export function TopNav() {
   const { role, displayName, setRole } = useSessionStore();
-  const lastSaved = useReviewStore((s) => s.lastSaved);
-  const status    = useReviewStore((s) => s.status);
+  const lastSaved    = useReviewStore((s) => s.lastSaved);
+  const status       = useReviewStore((s) => s.status);
+  const resetOnboarding = useOnboardingStore((s) => s.reset);
   const [roleOpen, setRoleOpen] = useState(false);
   const navigate  = useNavigate();
 
@@ -72,6 +74,7 @@ export function TopNav() {
               const uid = getUserId();
               localStorage.removeItem(onboardingKeys.complete(uid));
               localStorage.removeItem(onboardingKeys.draft(uid));
+              resetOnboarding();
               navigate("/onboarding/welcome");
             }}
             className="text-label-sm text-on-surface-variant hover:text-primary transition-colors"

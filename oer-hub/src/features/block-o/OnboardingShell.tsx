@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "./ProgressBar";
 import { useOnboardingStore } from "../../store/onboardingStore";
@@ -28,6 +28,16 @@ export function OnboardingShell({
   const navigate    = useNavigate();
   const currentStep = useOnboardingStore((s) => s.currentStep);
   const roles       = useOnboardingStore((s) => s.roles) as OnboardingRole[];
+
+  const loadDraft = useOnboardingStore((s) => s.loadDraft);
+
+  // Hydrate store from localStorage on direct navigation (e.g. page refresh
+  // mid-flow). Only runs when roles is empty — meaning the in-memory store was
+  // never populated through normal flow navigation.
+  useEffect(() => {
+    if (roles.length === 0) loadDraft();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isAddingRole = !!getAddingRole();
   const isDone       = currentStep === "done";
@@ -114,7 +124,7 @@ export function OnboardingShell({
               className={[
                 "w-full max-w-[480px] py-3.5 rounded-[10px] text-[15px] font-medium transition-colors",
                 continueEnabled
-                  ? "bg-burnt-umber text-white hover:bg-[#3d1e04] active:bg-[#2b1503]"
+                  ? "bg-ink-black text-white hover:opacity-90 active:opacity-80"
                   : "bg-whisper-border text-ash-gray cursor-not-allowed",
               ].join(" ")}
             >
