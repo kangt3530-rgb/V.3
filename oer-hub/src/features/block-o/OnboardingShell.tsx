@@ -124,7 +124,7 @@ export function OnboardingShell({
               className={[
                 "w-full max-w-[480px] py-3.5 rounded-[10px] text-[15px] font-medium transition-colors",
                 continueEnabled
-                  ? "bg-ink-black text-white hover:opacity-90 active:opacity-80"
+                  ? "bg-primary text-on-primary hover:bg-primary-container active:opacity-90"
                   : "bg-whisper-border text-ash-gray cursor-not-allowed",
               ].join(" ")}
             >

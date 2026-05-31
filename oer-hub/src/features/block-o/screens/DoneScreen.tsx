@@ -137,7 +137,7 @@ export function DoneScreen() {
             <button
               type="button"
               onClick={() => handleEnter(effectivePrimary === "reviewer" ? "/reviewer" : "/author")}
-              className="w-full max-w-[280px] py-3.5 rounded-[10px] bg-burnt-umber text-white font-suisseintl text-[15px] font-medium hover:bg-[#3d1e04] active:bg-[#2b1503] transition-colors"
+              className="w-full max-w-[280px] py-3.5 rounded-[10px] bg-primary text-on-primary font-suisseintl text-[15px] font-medium hover:bg-primary-container active:opacity-90 transition-colors"
             >
               {effectivePrimary === "reviewer"
                 ? "Browse my task pool →"

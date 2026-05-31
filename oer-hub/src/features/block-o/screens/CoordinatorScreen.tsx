@@ -133,7 +133,7 @@ export function CoordinatorScreen() {
               type="button"
               onClick={() => submit(false)}
               disabled={submitting}
-              className="flex-1 py-3 rounded-[10px] bg-burnt-umber text-white text-[14px] font-medium hover:bg-[#3d1e04] transition-colors disabled:opacity-50"
+              className="flex-1 py-3 rounded-[10px] bg-primary text-on-primary text-[14px] font-medium hover:bg-primary-container active:opacity-90 transition-colors disabled:opacity-50"
             >
               Submit and continue →
             </button>
