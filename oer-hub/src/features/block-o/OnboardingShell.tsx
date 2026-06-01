@@ -27,6 +27,7 @@ export function OnboardingShell({
 }: OnboardingShellProps) {
   const navigate    = useNavigate();
   const currentStep = useOnboardingStore((s) => s.currentStep);
+  const setStep     = useOnboardingStore((s) => s.setStep);
   const roles       = useOnboardingStore((s) => s.roles) as OnboardingRole[];
 
   const loadDraft = useOnboardingStore((s) => s.loadDraft);
@@ -54,7 +55,10 @@ export function OnboardingShell({
       return;
     }
     const prev = getPrevStep(currentStep, roles);
-    if (prev && STEP_PATHS[prev]) navigate(STEP_PATHS[prev]);
+    if (prev && STEP_PATHS[prev]) {
+      setStep(prev);
+      navigate(STEP_PATHS[prev]);
+    }
   }
 
   return (
