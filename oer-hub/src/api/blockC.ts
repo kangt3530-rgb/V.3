@@ -574,6 +574,7 @@ export async function getPerRubricReport(
       reviewCompletedAt: "",
       releasedToAuthor: false,
       criteria: [],
+      freeNotes: [],
       anchorVersion: anchor,
       currentVersion: current,
     };
@@ -627,6 +628,7 @@ export async function getPerRubricReport(
     reviewCompletedAt: task?.submittedAt ?? session.lastSaved,
     releasedToAuthor: true,
     criteria,
+    freeNotes: session.freeNotes ?? [],
     anchorVersion: anchor,
     currentVersion: current,
   };

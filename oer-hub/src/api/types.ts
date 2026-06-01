@@ -65,6 +65,8 @@ export interface ITask {
   submittedAt?: string;
 }
 
+export type AnnotationTag = "general_feedback" | "action_item" | "quick_fix";
+
 export interface AnnotationAnchor {
   type: "pdf" | "web";
   selectedText: string;
@@ -80,11 +82,22 @@ export interface AnnotationAnchor {
 export interface IAnnotation {
   id: string;
   taskId: string;
-  criterionId: string;
+  /** Zero or more criteria this annotation is linked to. */
+  criterionIds: string[];
   anchor: AnnotationAnchor;
   comment: string;
-  /** Set when surfaced in a Block C report; optional so Block B can create annotations without it. */
+  tag?: AnnotationTag;
+  /** @deprecated Use tag instead. Kept for Block C backwards-compat. */
   polarity?: "positive" | "negative";
+  createdAt: string;
+}
+
+export interface IFreeNote {
+  id: string;
+  taskId: string;
+  text: string;
+  tag: AnnotationTag;
+  criterionIds: string[];
   createdAt: string;
 }
 
@@ -103,6 +116,7 @@ export interface IReviewSession {
   oerSource: string;
   rubricTemplateId: RubricTemplateId;
   annotations: IAnnotation[];
+  freeNotes: IFreeNote[];
   ratings: Record<string, ICriterionRating>;
   splitRatio: number;
   oerScrollY: number;
@@ -170,6 +184,7 @@ export interface IPerRubricReport {
   reviewCompletedAt: string;
   releasedToAuthor: boolean;
   criteria: IAggregatedCriterionFeedback[];
+  freeNotes: IFreeNote[];
   anchorVersion: IOerVersion;
   currentVersion: IOerVersion;
 }

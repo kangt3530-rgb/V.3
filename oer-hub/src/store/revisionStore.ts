@@ -32,6 +32,14 @@ interface RevisionStoreState {
   // Per-criterion draft responses (before saving to API), keyed by criterionId
   draftResponses: Record<string, Partial<ICriterionResponse>>;
 
+  // General Comments section collapse state
+  generalCommentsCollapsed: boolean;
+  toggleGeneralComments: () => void;
+
+  // Per-item To-Do check-off state, keyed by annotation/freeNote id
+  todoCheckedItems: Record<string, boolean>;
+  toggleTodoItem: (itemId: string) => void;
+
   // Actions
   setContext: (oerId: string, rubricId: RubricTemplateId) => void;
   toggleRatingFilter: (rating: CriterionRatingSummary) => void;
@@ -67,6 +75,8 @@ export const useRevisionStore = create<RevisionStoreState>()(
       aiChatWidth: 25,
       reportScrollPending: false,
       draftResponses: {},
+      generalCommentsCollapsed: false,
+      todoCheckedItems: {},
 
       setContext: (oerId, rubricId) => {
         set({ currentOerId: oerId, currentRubricId: rubricId });
@@ -158,6 +168,15 @@ export const useRevisionStore = create<RevisionStoreState>()(
             [criterionId]: { ...draftResponses[criterionId], ...partial },
           },
         });
+      },
+
+      toggleGeneralComments: () => {
+        set((s) => ({ generalCommentsCollapsed: !s.generalCommentsCollapsed }));
+      },
+
+      toggleTodoItem: (itemId) => {
+        const { todoCheckedItems } = get();
+        set({ todoCheckedItems: { ...todoCheckedItems, [itemId]: !todoCheckedItems[itemId] } });
       },
     }),
     {

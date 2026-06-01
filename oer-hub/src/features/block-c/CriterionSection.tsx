@@ -3,6 +3,7 @@ import type {
   IAggregatedCriterionFeedback,
   ICriterionResponse,
   ICoordinatorQuestion,
+  IFreeNote,
 } from "../../api/types";
 import { upsertCriterionResponse } from "../../api";
 import { useRevisionStore } from "../../store/revisionStore";
@@ -12,6 +13,7 @@ import { RubricDefinitionModal } from "./RubricDefinitionModal";
 
 interface CriterionSectionProps {
   criterion: IAggregatedCriterionFeedback;
+  freeNotes: IFreeNote[];
   response: ICriterionResponse | null;
   rubricName: string;
   isCollapsed: boolean;
@@ -51,6 +53,7 @@ const AUTHOR_INPUT =
 
 export function CriterionSection({
   criterion,
+  freeNotes,
   response,
   rubricName,
   isCollapsed,

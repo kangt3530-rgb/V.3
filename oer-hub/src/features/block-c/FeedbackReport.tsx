@@ -15,6 +15,7 @@ import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
 import { FilterChips } from "./FilterChips";
 import { CriterionSection } from "./CriterionSection";
+import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
 import { OERPreviewPane } from "./OERPreviewPane";
 import { ExportPanel } from "./ExportPanel";
 import { AIChatbox } from "../../components/ai/AIChatbox";
@@ -405,10 +406,12 @@ export default function FeedbackReport() {
         />
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="max-w-5xl mx-auto space-y-4">
+            <ReviewerGeneralComments freeNotes={report.freeNotes} />
             {visibleCriteria.map((c) => (
               <CriterionSection
                 key={c.criterionId}
                 criterion={c}
+                freeNotes={report.freeNotes}
                 response={responses.find((r) => r.criterionId === c.criterionId) ?? null}
                 rubricName={report.rubricName}
                 isCollapsed={collapsedCriteria.includes(c.criterionId)}
