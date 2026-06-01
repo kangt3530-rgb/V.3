@@ -1,10 +1,10 @@
 # **Product Requirement Document (PRD): OER Certification Hub**
 
-**Version:** 3.4
+**Version:** 3.5
 
 **Status:** Planning / For Review
 
-**Target Release:** April MVP (Functional Launch)
+**Target Release:** July,2026 
 
 ## **1\. General Description**
 
@@ -19,6 +19,7 @@
 | 2026-04-02 | v3.2 | User Flow Updated for Block A and Block B |
 | 2026-05-18 | v3.3 | Block C fully redesigned. Replaced the dual Report-and-Revision-Card system with a single per-rubric Revision Report. Removed Revision Cards as a separate construct; the Author now reads feedback and records revisions in one unified reading interface. Established spatial parity with Block B (three-pane layout). Defined two-mode AI assistance (Conversational \+ Generative). Removed "evidence" terminology from the Author-facing interface in favor of "annotation." |
 | 2026-05-19 | v3.4 | Added two new appendix blocks: Block B+ (Reviewer Console AI Augmentation) and Block C+ (Author Console AI Augmentation), formalizing the AI feature set across both consoles. Introduced the three-mode AI interaction principle (Always-on / Nudge / On-demand) and added two cross-cutting AI principles to Section 2.3: AI Transparency over Detection and AI Data Handling Policy. Embedded user-flow visuals into Block A, B, and C user-flow sections. |
+| 2026-05-29 | v3.5 | Added Block O: Initial User Onboarding (Multi-Role Activation). Introduces a five-stage onboarding flow covering Welcome, Role Identification, Profile Basics, Role-Specific Essentials, and Primed First-Action Landing. Establishes Progressive Disclosure as a cross-cutting design principle, deferring rubric, license, and methodology education from onboarding to natural touchpoints in Blocks A, B, and C. |
 
 ### 
 
@@ -50,7 +51,11 @@ Note on Role Fluidity: The system supports multi-role users. A single individual
 * Annotation: An anchored note left by a Reviewer on a specific location in the OER, tied to a criterion. Annotations carry a positive or negative polarity tag.  
 * Digital Stamp: A digital badge that proves a resource passed peer review.  
 * Rubric: A set of standard criteria used to grade OER quality. The platform supports six rubric types (Accessibility, Copy Editing, Copyright, Disciplinary Appropriateness, eLearning Review, UDL).  
-* Feedback License: Reviewer feedback is licensed under CC BY-ND (Attribution-NoDerivs). This ensures the feedback can be shared but remains unalterable by the author or third parties.
+* Feedback License: Reviewer feedback is licensed under CC BY-ND (Attribution-NoDerivs). This ensures the feedback can be shared but remains unalterable by the author or third parties.  
+* Block O: The onboarding sequence run on first authenticated session (and on subsequent role additions). Captures only data that blocks the user's first meaningful action. All educational content is deferred to Blocks A, B, and C touchpoints.  
+* Primary Workspace: The default dashboard a multi-role user lands on after authentication. User-set during onboarding; modifiable in Settings.  
+* Onboarding Completion State: Per-role boolean tracking whether a user has completed a given role's Stage 4 essentials. Stored as separate fields per role: user.author\_onboarded, user.reviewer\_onboarded, user.coordinator\_interest\_logged.  
+* Progressive Disclosure (Onboarding Principle): The design rule that no role-specific education is collected or shown during Block O. Educational content appears only when the user encounters the matching action in Blocks A, B, or C.
 
 ## **2\. Problem Space & Need Statements**
 
@@ -76,14 +81,136 @@ The current OER review process is manual and slow. Leads spend too much time for
 | **Spatial Parity Across Consoles** | Block B and Block C share the same three-pane spatial language. | Same pane positions (left OER / center Console / right AI overlay), with different default open states. Serves users in dual Author \+ Reviewer roles. | P1 |
 | **AI Transparency over Detection** | Make AI usage visible and traceable inside the product, not surveilled or detected. | All AI-generated outputs carry a visible AI-generated label until the user edits them. The product does not deploy AI-content detectors. AI interaction history (chatbox transcripts, generative drafts) remains accessible to the user who created them. | P1 |
 | **AI Data Handling Policy (Placeholder)** | Establish boundaries on what user content can be processed by AI features. | OER content, reviewer comments, and author revision logs are processed by AI only to support in-product features; not used to train external models. Specific opt-in/opt-out controls and Copyright-rubric edge cases are pending client alignment. | P1 |
-
-## 
-
-## 
+| **Onboarding Progressive Disclosure** | Collect only what blocks the user's first meaningful action; defer all role-specific education to natural touchpoints in Blocks A, B, and C. | Author onboarding contains zero mandatory Stage 4 steps. Reviewer onboarding is limited to four blocking fields. Coordinator onboarding is a non-blocking placeholder. No rubric, license, or methodology explainers may be added to Block O screens. | P0 |
 
 ## 
 
 ## **3\. Functional Requirements**
+
+### **Block O: Initial User Onboarding (Multi-Role Activation)**
+
+**Executive Summary**
+
+Block O is the user's first structured contact with Open4Review following authentication. It establishes the user's role(s), captures minimum identity and matching data, and routes the user to a first-action-primed dashboard. The block operationalizes PRD 1.4's Note on Role Fluidity by treating role selection as multi-select rather than single-select, and operationalizes the platform's grant-funded, mission-driven character through warmth-first copy that recognizes both Author and Reviewer contributions to the OER community.
+
+The block follows Progressive Disclosure: only data that blocks the user's first action is collected during onboarding. All role-specific education — rubric details, CC license specifics, evidence-based evaluation methodology, split-pane interaction patterns — is deferred to natural touchpoints in Blocks A, B, and C.
+
+**Detailed User Flow**
+
+**Stage 1: Welcome (Universal)**
+
+* **Action:** User arrives post-authentication on a single mission-framing screen.  
+* **System Logic:** No data collection. Copy recognizes both Author and Reviewer contributions to the OER community. A single CTA advances to Stage 2\.  
+* **Skip Behavior:** Not skippable, but contains no input — Continue is the only forward action.
+
+**Stage 2: Role Identification (Universal, Multi-Select)**
+
+* **Action:** User selects one or more roles: Author, Reviewer, or Coordinator (placeholder).  
+* **System Logic:**  
+  * Roles render as three vertically stacked cards with icon, title, and warm explanatory copy.  
+  * Author and Reviewer cards are individually toggleable. Multi-select is supported and explicitly encouraged in the screen's subhead copy ("Pick all that apply — many people both create and review").  
+  * The Coordinator card is rendered identically but is not selectable. It carries a "Coming soon" badge and warm placeholder copy. It must read as intentional and forthcoming, not as disabled, dimmed, or stubbed.  
+  * Continue is disabled until at least one role is selected.
+
+**Stage 2b: Primary Workspace (Conditional)**
+
+* **Trigger:** Shown only if Stage 2 selection includes two or more roles.  
+* **Action:** User chooses which workspace opens by default at Stage 5 landing.  
+* **System Logic:** Single-select radio. Selection is modifiable in Settings post-onboarding.
+
+**Stage 3: Profile Basics (Universal)**
+
+* **Action:** User completes four fields on a single screen.  
+* **Fields:**  
+  * Display name (free text)  
+  * Institution or organization (free text)  
+  * Primary discipline (dropdown of standard disciplines \+ Other)  
+  * Role title (dropdown: Faculty/Professor, Instructional Designer, Editor, Industry Practitioner, Graduate Student, Other)  
+* **System Logic:**  
+  * Discipline is one input to Reviewer Task Pool matching (Block A.6), alongside expertise tags collected in Stage 4B.  
+  * All fields are required to advance.
+
+**Stage 4: Role-Specific Essentials (Conditional Branching)**
+
+Stages 4A, 4B, and 4C run in sequence only for the roles the user selected in Stage 2\.
+
+**Stage 4A: Author Branch (Zero Mandatory Steps)**
+
+* **Action:** User passes through this stage with no additional data collection or screens shown.  
+* **System Logic:**  
+  * The system marks `user.author_onboarded = true` on entry.  
+  * User is advanced directly to Stage 4B (if also Reviewer), Stage 4C (if also Coordinator), or Stage 5\.  
+* **Design Rationale:** All Author-facing education — rubric selection, CC license, third-party content disclosure, self-review mode — is embedded in Block A's submission flow at natural decision points. Re-teaching these in onboarding would violate Progressive Disclosure.
+
+**Stage 4B: Reviewer Branch (Four Blocking Sub-Stages)**
+
+Each sub-stage is its own screen with one focused input.
+
+**Stage 4B.1: Reviewer Type**
+
+* Single-select between Academic Peer and Industry Expert. Mandatory.  
+* Persisted to `reviewer_profile.type`. Surfaced alongside the reviewer's feedback in Block B/C to give Authors context on the reviewer's perspective.
+
+**Stage 4B.2: Expertise Tags**
+
+* Multi-select chip interface with profile-derived suggestions (seeded from the Stage 3 discipline).  
+* Free-text input also accepted for tags not in suggestions.  
+* Minimum two tags required to advance.  
+* Feeds the matching logic in Block A.6 Task Pool.
+
+**Stage 4B.3: Rubric Specialization**
+
+* Multi-select from the six standard rubrics: Accessibility, Copy Editing, Copyright, Disciplinary Appropriateness, eLearning Review, UDL.  
+* At least one rubric required.  
+* The Task Pool only surfaces tasks whose rubric is in this set. Modifiable in Settings.
+
+**Stage 4B.4: Feedback License Consent**
+
+* CC BY-ND consent screen with plain-language explanation of what the license means for the reviewer's words.  
+* Mandatory checkbox. Required to advance.  
+* Consent is logged with timestamp and license version string for compliance.
+
+On completion of all four sub-stages, the system marks `user.reviewer_onboarded = true`.
+
+**Stage 4C: Coordinator Branch (Non-Blocking Placeholder)**
+
+* **Action:** User completes a single warm-tone holding screen with three optional inputs:  
+  * Organization or program managed (free text)  
+  * Current pain points (short answer)  
+  * Notification opt-in email for product launch  
+* **System Logic:**  
+  * All inputs are optional. A clearly visible Skip option is present.  
+  * Submitted inputs persist to `coordinator_interest_log`. The associated schema reserves fields for permission tier, managed organizations, and mediation queue access scope so that the future Coordinator activation will not require database migration.  
+  * `user.coordinator_interest_logged = true` on any submission, including empty submissions.
+
+**Stage 5: Primed First-Action Landing**
+
+* **Action:** User lands on the dashboard corresponding to the Primary Workspace selection (or the user's sole selected role if only one was chosen).  
+* **System Logic by Landing Type:**  
+  * **Reviewer landing:** The Task Pool is pre-fetched and filtered by the user's discipline, expertise tags, and rubric specialization. A hero element communicates the match count ("We found X tasks that match your expertise") with a CTA to browse. Zero-match case shows a reassuring empty-state copy and surfaces a notification-frequency control.  
+  * **Author landing:** The dashboard list area shows an empty state. A prominent persistent banner surfaces the Submit New Resource CTA with an estimated time ("about 5 minutes").  
+  * **Coordinator-only users (placeholder mode):** A "Coming soon" landing page with curated OER community resources. No dashboard is unlocked.  
+* **Multi-Role Surface:** For users with both Author and Reviewer roles, a persistent workspace switcher appears in the top corner of the application chrome. A first-time tooltip highlights its presence.
+
+**User Flow Visuals**
+
+**Functional Requirements Table**
+
+| ID | User Story | Feature / Specification | Priority | Status |
+| :---- | :---- | :---- | :---- | :---- |
+| O.1 | As a new user, I want a welcoming entry that recognizes my contribution to the OER community. | **Mission-Aligned Welcome Screen:** Single-screen pre-onboarding intro acknowledging both Author and Reviewer contributions. No data collection. | P0 | Planned |
+| O.2 | As a multi-role user, I want to identify all my roles at once without committing to one. | **Multi-Role Identification:** Multi-select role chooser supporting Author \+ Reviewer simultaneous selection. Coordinator visible but non-selectable, presented warmly with a "Coming soon" badge. | P0 | Planned |
+| O.3 | As a multi-role user, I want to set my default workspace. | **Primary Workspace Selection:** Conditional screen shown only when 2+ roles selected; selection determines Stage 5 landing and the default workspace going forward. Modifiable in Settings. | P0 | Planned |
+| O.4 | As any user, I want to provide just enough information for the system to function. | **Minimal Profile Capture:** Four-field universal profile (display name, institution, primary discipline, role title). All required. | P0 | Planned |
+| O.5 | As a Reviewer, I want to declare my participation context so Authors understand my perspective. | **Reviewer Type Declaration:** Single-select between Academic Peer and Industry Expert. Mandatory. Persisted to reviewer profile. | P0 | Planned |
+| O.6 | As a Reviewer, I want to tag my expertise so I receive relevant tasks. | **Expertise Tag Capture:** Multi-select chip interface with profile-derived suggestions plus free-text input. Minimum two tags required. Feeds Block A.6 Task Pool matching. | P0 | Planned |
+| O.7 | As a Reviewer, I want to declare which rubrics I'm qualified to apply. | **Rubric Specialization Selection:** Multi-select from the six standard rubrics. Minimum one rubric required. Filters which tasks appear in the Block A.6 Task Pool. | P0 | Planned |
+| O.8 | As a Reviewer, I want to formally consent to the feedback license before participating. | **Feedback License Consent:** CC BY-ND acknowledgment screen with plain-language framing. Mandatory checkbox. Logged with timestamp and license version. | P0 | Planned |
+| O.9 | As a Coordinator-interested user, I want to express my interest gracefully even though the tools are not ready. | **Coordinator Placeholder Capture:** Warm holding screen with optional organization context, pain points, and notification opt-in. Schema reserves fields for future activation without migration. | P1 | Planned |
+| O.10 | As any user, I want to land on a screen that clearly shows my next step. | **Primed First-Action Landing:** Role-specific dashboard with prominent first-action CTA. Reviewer landing pre-fetches matched tasks; Author landing emphasizes Submit New Resource. | P0 | Planned |
+| O.11 | As a user adding a new role to an existing account, I want to onboard only into the new role. | **Per-Role Onboarding State:** Database tracks onboarding completion per role. Adding a new role re-triggers only that role's Stage 4 branch. | P1 | Planned |
+| O.12 | As any user, I want my interrupted onboarding to resume where I left off. | **Resumable Onboarding State:** Per-stage progress persisted on each Continue. Returning users mid-flow land on the last incomplete required step. | P1 | Planned |
+| O.13 | As an Author, I want to avoid friction during onboarding since the submission flow already educates me. | **Zero-Step Author Branch:** Author selection in Stage 2 requires no further Stage 4 input. `user.author_onboarded` is marked true on stage entry. | P0 | Planned |
 
 ### **Block A: Submission & Dashboard (Core Entry System)**
 
@@ -579,7 +706,7 @@ Two additional principles are specific to Block C+:
 3. **Context Boundaries:** A1 has access to a single criterion's context. A2 has access to the entire current rubric review (all criteria \+ revision logs \+ ratings). Neither has access to other rubric reviews on the same OER, the OER's Block B reviewer-side data (other than what was released to the Author), or other Authors' content.  
 4. **Latency Expectations:** A2 (generative) is acceptably slower (5–10s) given its one-shot nature. A1 (conversational) and A3 (nudge) must remain responsive.
 
-### **Block C — Verification & Publication (Coordinator-Side)**
+### **Block D — Verification & Publication (Coordinator-Side)**
 
 The following capabilities sit downstream of Block C's Author workflow. They are owned by the Coordinator and finalize the certification lifecycle. They are listed here for continuity but are detailed in the Coordinator workflow specifications.
 
@@ -588,7 +715,7 @@ The following capabilities sit downstream of Block C's Author workflow. They are
 | C.V1 | As a coordinator, I want to issue a public-facing proof of quality once the review is successful. | **Digital Stamp Generation:** System creates a unique, verifiable badge/stamp linked to a public landing page displaying the review summary. | P1 | Planned |
 | C.V2 | As an adopter (Educator), I want to verify if an OER is truly certified. | **Validation Landing Page:** A public-facing URL that showcases the OER metadata, the rubrics applied, and the final "Proficient" status. | P1 | Planned |
 
-### **3.4 Block D: Progress Management & Persistence**
+### **Block E: Progress Management & Persistence**
 
 | ID | User Story | Feature / Specification | Priority | Status |
 | :---- | :---- | :---- | :---- | :---- |

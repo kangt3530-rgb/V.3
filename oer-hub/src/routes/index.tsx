@@ -20,7 +20,6 @@ import { MediationQueue }            from "../features/block-c/MediationQueue";
 import { ValidationLandingPage }     from "../features/block-c/ValidationLandingPage";
 
 // Block O — Onboarding
-import { OnboardingShell }           from "../features/block-o/OnboardingShell";
 import { WelcomeScreen }             from "../features/block-o/screens/WelcomeScreen";
 import { RolesScreen }               from "../features/block-o/screens/RolesScreen";
 import { PrimaryWorkspaceScreen }    from "../features/block-o/screens/PrimaryWorkspaceScreen";
@@ -103,74 +102,29 @@ export function AppRoutes() {
         <Route path="/" element={<Navigate to="/author" replace />} />
 
         {/* ── Block O: Onboarding ──────────────────────────────────────────── */}
+        {/* Each screen renders its own OnboardingShell — no wrapper here */}
         <Route
           path="/onboarding/welcome"
-          element={
-            <OnboardingOnly>
-              <OnboardingShell><WelcomeScreen /></OnboardingShell>
-            </OnboardingOnly>
-          }
+          element={<OnboardingOnly><WelcomeScreen /></OnboardingOnly>}
         />
         <Route
           path="/onboarding/roles"
-          element={
-            <OnboardingOnly>
-              <OnboardingShell><RolesScreen /></OnboardingShell>
-            </OnboardingOnly>
-          }
+          element={<OnboardingOnly><RolesScreen /></OnboardingOnly>}
         />
         <Route
           path="/onboarding/primary"
-          element={
-            <OnboardingOnly>
-              <OnboardingShell><PrimaryWorkspaceScreen /></OnboardingShell>
-            </OnboardingOnly>
-          }
+          element={<OnboardingOnly><PrimaryWorkspaceScreen /></OnboardingOnly>}
         />
         <Route
           path="/onboarding/profile"
-          element={
-            <OnboardingOnly>
-              <OnboardingShell><ProfileScreen /></OnboardingShell>
-            </OnboardingOnly>
-          }
+          element={<OnboardingOnly><ProfileScreen /></OnboardingOnly>}
         />
-        <Route
-          path="/onboarding/reviewer/type"
-          element={
-            <OnboardingShell><ReviewerTypeScreen /></OnboardingShell>
-          }
-        />
-        <Route
-          path="/onboarding/reviewer/expertise"
-          element={
-            <OnboardingShell><ReviewerExpertiseScreen /></OnboardingShell>
-          }
-        />
-        <Route
-          path="/onboarding/reviewer/rubrics"
-          element={
-            <OnboardingShell><ReviewerRubricsScreen /></OnboardingShell>
-          }
-        />
-        <Route
-          path="/onboarding/reviewer/license"
-          element={
-            <OnboardingShell><ReviewerLicenseScreen /></OnboardingShell>
-          }
-        />
-        <Route
-          path="/onboarding/coordinator"
-          element={
-            <OnboardingShell><CoordinatorScreen /></OnboardingShell>
-          }
-        />
-        <Route
-          path="/onboarding/done"
-          element={
-            <OnboardingShell><DoneScreen /></OnboardingShell>
-          }
-        />
+        <Route path="/onboarding/reviewer/type"     element={<ReviewerTypeScreen />} />
+        <Route path="/onboarding/reviewer/expertise" element={<ReviewerExpertiseScreen />} />
+        <Route path="/onboarding/reviewer/rubrics"  element={<ReviewerRubricsScreen />} />
+        <Route path="/onboarding/reviewer/license"  element={<ReviewerLicenseScreen />} />
+        <Route path="/onboarding/coordinator"       element={<CoordinatorScreen />} />
+        <Route path="/onboarding/done"              element={<DoneScreen />} />
 
         {/* ── Block A: Dashboards ──────────────────────────────────────────── */}
         <Route
