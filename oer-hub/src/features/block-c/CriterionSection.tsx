@@ -150,7 +150,7 @@ export function CriterionSection({
     TODO_TAGS.includes(a.tag ?? "general_feedback" as AnnotationTag)
   );
   const todoFreeNotes = freeNotes.filter(
-    (n) => n.criterionIds.includes(criterionId) && TODO_TAGS.includes(n.tag)
+    (n) => (n.criterionIds ?? []).includes(criterionId) && TODO_TAGS.includes(n.tag)
   );
   const todoItems: Array<
     { type: "annotation"; item: typeof todoAnnotations[number] } |
@@ -302,7 +302,7 @@ export function CriterionSection({
                       ? ann.anchor.selectedText.slice(0, 60) + "…"
                       : ann.anchor.selectedText;
                   const isInTodo = TODO_TAGS.includes(tag);
-                  const otherCriteria = ann.criterionIds.filter((id) => id !== criterionId);
+                  const otherCriteria = (ann.criterionIds ?? []).filter((id) => id !== criterionId);
 
                   return (
                     <div

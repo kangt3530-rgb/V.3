@@ -9,7 +9,7 @@ interface ReviewerGeneralCommentsProps {
 export function ReviewerGeneralComments({ freeNotes }: ReviewerGeneralCommentsProps) {
   const { generalCommentsCollapsed, toggleGeneralComments } = useRevisionStore();
 
-  const unlinkedNotes = freeNotes.filter((n) => n.criterionIds.length === 0);
+  const unlinkedNotes = freeNotes.filter((n) => (n.criterionIds ?? []).length === 0);
   if (unlinkedNotes.length === 0) return null;
 
   return (
