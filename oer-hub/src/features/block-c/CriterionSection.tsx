@@ -295,12 +295,14 @@ export function CriterionSection({
               </p>
               <div className="space-y-2">
                 {criterion.annotations.map((ann) => {
-                  const polarityIcon =
-                    ann.polarity === "positive" ? "⭐" : ann.polarity === "negative" ? "⚠" : "📍";
+                  const tag = ann.tag ?? "general_feedback" as AnnotationTag;
+                  const { icon: tagIcon, cls: tagCls } = TAG_CONFIG[tag];
                   const locationText =
                     ann.anchor.selectedText.length > 60
                       ? ann.anchor.selectedText.slice(0, 60) + "…"
                       : ann.anchor.selectedText;
+                  const isInTodo = TODO_TAGS.includes(tag);
+                  const otherCriteria = ann.criterionIds.filter((id) => id !== criterionId);
 
                   return (
                     <div
@@ -313,11 +315,19 @@ export function CriterionSection({
                       }`}
                     >
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="flex-shrink-0 text-xs">{polarityIcon}</span>
+                        <span
+                          className={`material-symbols-outlined text-[14px] flex-shrink-0 ${tagCls}`}
+                          style={{ fontVariationSettings: "'FILL' 1" }}
+                        >
+                          {tagIcon}
+                        </span>
                         <span className="text-xs text-on-surface-variant/70 truncate">
                           {locationText}
                           {ann.anchor.page ? ` — page ${ann.anchor.page}` : ""}
                         </span>
+                        {isInTodo && (
+                          <span className="text-[10px] text-on-surface-variant/50 flex-shrink-0">↑ in to-do</span>
+                        )}
                         {ann.id === viewingAnnotationId && (
                           <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded">
                             VIEWING
@@ -327,6 +337,11 @@ export function CriterionSection({
                       <p className="text-sm text-on-surface pl-5 leading-relaxed">
                         {ann.comment}
                       </p>
+                      {otherCriteria.length > 0 && (
+                        <p className="text-[10px] text-on-surface-variant/50 pl-5">
+                          Also under {otherCriteria.join(", ")}
+                        </p>
+                      )}
                       <button
                         onClick={() => onViewAnnotation(ann.id)}
                         className="pl-5 text-xs text-secondary hover:underline transition-colors"
