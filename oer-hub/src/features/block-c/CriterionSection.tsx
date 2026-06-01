@@ -4,9 +4,11 @@ import type {
   ICriterionResponse,
   ICoordinatorQuestion,
   IFreeNote,
+  AnnotationTag,
 } from "../../api/types";
 import { upsertCriterionResponse } from "../../api";
 import { useRevisionStore } from "../../store/revisionStore";
+import { TAG_CONFIG } from "../block-b/annotationTagConfig";
 import { Button } from "../../components/ui/Button";
 import { RatingPill } from "./RatingPill";
 import { RubricDefinitionModal } from "./RubricDefinitionModal";
@@ -62,7 +64,7 @@ export function CriterionSection({
   onResponseSaved,
   isReadOnly = false,
 }: CriterionSectionProps) {
-  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId, openAiChat, aiChatCriterionId, aiChatOpen } = useRevisionStore();
+  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId, openAiChat, aiChatCriterionId, aiChatOpen, todoCheckedItems, toggleTodoItem } = useRevisionStore();
   const draft = draftResponses[criterion.criterionId] ?? {};
   const criterionId = criterion.criterionId;
   const oerId = currentOerId ?? response?.oerId ?? "";
@@ -143,6 +145,21 @@ export function CriterionSection({
   const isProficient = displayRating === "proficient";
   const showAuthorBlocks = isNI || isExceeds;
 
+  const TODO_TAGS: AnnotationTag[] = ["action_item", "quick_fix"];
+  const todoAnnotations = criterion.annotations.filter((a) =>
+    TODO_TAGS.includes(a.tag ?? "general_feedback" as AnnotationTag)
+  );
+  const todoFreeNotes = freeNotes.filter(
+    (n) => n.criterionIds.includes(criterionId) && TODO_TAGS.includes(n.tag)
+  );
+  const todoItems: Array<
+    { type: "annotation"; item: typeof todoAnnotations[number] } |
+    { type: "freeNote"; item: typeof todoFreeNotes[number] }
+  > = [
+    ...todoAnnotations.map((a) => ({ type: "annotation" as const, item: a })),
+    ...todoFreeNotes.map((n) => ({ type: "freeNote" as const, item: n })),
+  ].sort((a, b) => a.item.createdAt.localeCompare(b.item.createdAt));
+
   return (
     <div id={`criterion-${criterion.criterionId}`} className="border border-outline-variant/20 border-l-2 border-l-outline-variant/40 rounded-r-lg overflow-hidden bg-surface-container-lowest">
       {/* ── Section header ── */}
@@ -216,6 +233,56 @@ export function CriterionSection({
                 <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
                   {criterion.overallComment}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Block 2.5: To-Do List */}
+          {todoItems.length > 0 && (
+            <div className="space-y-1.5">
+              <p className={SECTION_LABEL}>To-Do for this criterion</p>
+              <div className="space-y-2">
+                {todoItems.map(({ type, item }) => {
+                  const tag = item.tag ?? "general_feedback" as AnnotationTag;
+                  const { icon, cls, label } = TAG_CONFIG[tag];
+                  const text = type === "annotation" ? item.comment : item.text;
+                  return (
+                    <div key={item.id} className="flex items-start gap-2.5 bg-surface-container/60 rounded-md px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={!!todoCheckedItems[item.id]}
+                        onChange={() => toggleTodoItem(item.id)}
+                        className="mt-0.5 rounded border-outline-variant accent-primary w-3.5 h-3.5 flex-shrink-0 cursor-pointer"
+                      />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`material-symbols-outlined text-[14px] flex-shrink-0 ${cls}`}
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                          >
+                            {icon}
+                          </span>
+                          <span className={`text-xs font-semibold ${cls}`}>{label}</span>
+                        </div>
+                        <p className={`text-sm text-on-surface leading-relaxed ${todoCheckedItems[item.id] ? "line-through text-on-surface-variant/50" : ""}`}>
+                          {text}
+                        </p>
+                        <button
+                          onClick={() => {
+                            if (type === "annotation") {
+                              onViewAnnotation(item.id);
+                            } else {
+                              document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }
+                          }}
+                          className="text-xs text-secondary hover:underline transition-colors"
+                        >
+                          ↗ View source
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
