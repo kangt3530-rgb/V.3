@@ -2,7 +2,15 @@
  * Review session persistence (Block B) — extracted to avoid circular imports with Block C.
  */
 
-import type { IAnnotation, ICriterionRating, IReviewSession, RatingValue, RubricTemplateId } from "./types";
+import type {
+  IAnnotation,
+  ICriterionRating,
+  IFreeNote,
+  IReviewSession,
+  RatingValue,
+  RubricTemplateId,
+  AnnotationTag,
+} from "./types";
 
 const SESSION_KEY_V3 = (taskId: string) => `oer-hub:session:v3:${taskId}`;
 /** @deprecated Legacy key — migrated on load */
@@ -39,15 +47,47 @@ function migrateCriterionRating(legacy: unknown): ICriterionRating {
   };
 }
 
+function criterionIdsFromLegacy(raw: unknown): string[] {
+  const x = raw as { criterionIds?: string[]; criterionId?: string };
+  if (Array.isArray(x.criterionIds) && x.criterionIds.length > 0) {
+    return x.criterionIds;
+  }
+  if (typeof x.criterionId === "string" && x.criterionId) {
+    return [x.criterionId];
+  }
+  return [];
+}
+
 function migrateAnnotation(a: unknown): IAnnotation {
-  const x = a as Partial<IAnnotation> & { evidencePolarity?: unknown };
+  const x = a as Partial<IAnnotation> & { criterionId?: string; evidencePolarity?: unknown };
+  const criterionIds = criterionIdsFromLegacy(x);
+  const tag: AnnotationTag | undefined =
+    x.tag ??
+    (x.polarity === "positive" || x.polarity === "negative"
+      ? "general_feedback"
+      : undefined);
+
   return {
     id: x.id ?? "",
     taskId: x.taskId ?? "",
-    criterionId: x.criterionId ?? "",
+    criterionIds,
     comment: x.comment ?? "",
     createdAt: x.createdAt ?? new Date().toISOString(),
     anchor: x.anchor ?? { type: "web", selectedText: "", rects: [] },
+    tag,
+    polarity: x.polarity,
+  };
+}
+
+function migrateFreeNote(n: unknown): IFreeNote {
+  const x = n as Partial<IFreeNote> & { criterionId?: string };
+  return {
+    id: x.id ?? "",
+    taskId: x.taskId ?? "",
+    text: x.text ?? "",
+    tag: x.tag ?? "general_feedback",
+    criterionIds: criterionIdsFromLegacy(x),
+    createdAt: x.createdAt ?? new Date().toISOString(),
   };
 }
 
@@ -55,6 +95,7 @@ function normalizeSession(raw: unknown): IReviewSession {
   const s = raw as Partial<IReviewSession> & {
     ratings?: Record<string, unknown>;
     annotations?: unknown[];
+    freeNotes?: unknown[];
   };
   const ratings: Record<string, ICriterionRating> = {};
   if (s.ratings && typeof s.ratings === "object") {
@@ -63,6 +104,7 @@ function normalizeSession(raw: unknown): IReviewSession {
     }
   }
   const annotations = (s.annotations ?? []).map(migrateAnnotation);
+  const freeNotes = (s.freeNotes ?? []).map(migrateFreeNote);
   return {
     taskId: s.taskId ?? "",
     oerId: s.oerId ?? "",
@@ -70,6 +112,7 @@ function normalizeSession(raw: unknown): IReviewSession {
     oerSource: s.oerSource ?? "",
     rubricTemplateId: s.rubricTemplateId ?? "accessibility",
     annotations,
+    freeNotes,
     ratings,
     splitRatio: typeof s.splitRatio === "number" ? s.splitRatio : 0.5,
     oerScrollY: typeof s.oerScrollY === "number" ? s.oerScrollY : 0,
@@ -79,6 +122,13 @@ function normalizeSession(raw: unknown): IReviewSession {
     aiPaneOpen: typeof s.aiPaneOpen === "boolean" ? s.aiPaneOpen : false,
     activeNudges: Array.isArray(s.activeNudges) ? s.activeNudges : [],
   };
+}
+
+/** True when a persisted session predates v3.6 multi-criterion / free-note shape. */
+export function isStaleV36Session(session: IReviewSession): boolean {
+  if (session.annotations.length === 0) return true;
+  const allUnlinked = session.annotations.every((a) => !(a.criterionIds?.length));
+  return allUnlinked;
 }
 
 export function loadSession(taskId: string): IReviewSession | null {

@@ -21,7 +21,7 @@ import type {
 } from "./types";
 import { MOCK_OERS } from "./mock/oers";
 import { MOCK_ACTIVE_TASKS, MOCK_POOL_TASKS } from "./mock/tasks";
-import { loadSession } from "./sessionStorage";
+import { isStaleV36Session, loadSession } from "./sessionStorage";
 
 const LS_OER_STATUS = "oer-hub:mock:oer-status-overrides";
 const LS_MEDIATION = "oer-hub:block-c:mediation-items";
@@ -640,7 +640,10 @@ export async function getPerRubricReport(
   if (!taskId) return null;
 
   let session = loadSession(taskId);
-  if (oerId === "oer-001" && (!session || session.status !== "submitted")) {
+  if (
+    oerId === "oer-001" &&
+    (!session || session.status !== "submitted" || isStaleV36Session(session))
+  ) {
     session = demoSessionForOer001();
   }
   if (!session) return null;

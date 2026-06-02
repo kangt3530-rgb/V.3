@@ -297,6 +297,8 @@ export default function FeedbackReport() {
     localStorage.removeItem(`oer-hub:block-c:responses:${oerId}:${rubricId}`);
     localStorage.removeItem(`oer-hub:block-c:submission:${oerId}:${rubricId}`);
     localStorage.removeItem("oer-hub:block-c:revision-store");
+    // Also clear the reviewer session so the new demo seed data is used on reload
+    localStorage.removeItem("oer-hub:session:v3:task-001");
     clearOerStatusOverride(oerId);
     window.location.reload();
   }
