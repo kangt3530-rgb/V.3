@@ -260,7 +260,7 @@ function annotationsForCriterion(
   session: IReviewSession,
   criterionId: string
 ): IAnnotation[] {
-  return session.annotations.filter((a) => a.criterionId === criterionId);
+  return session.annotations.filter((a) => (a.criterionIds ?? []).includes(criterionId));
 }
 
 function buildVersions(oer: IOer): { current: IOerVersion; anchor: IOerVersion } {
@@ -297,12 +297,12 @@ function demoSessionForOer001(): IReviewSession {
     oerSource: "mock://quantum-mechanics",
     rubricTemplateId: "accessibility",
     annotations: [
-      // C1 — needs_improvement (3 annotations → negative polarity)
-      // selectedText values match actual text in MockOERRenderer's OERContent component
+      // C1 — needs_improvement: 3 annotations with mixed tags (exercises To-Do List + tag icon display)
       {
         id: "ann-demo-1",
         taskId: "task-001",
-        criterionId: "C1",
+        criterionIds: ["C1"],
+        tag: "action_item",
         comment:
           "Opening chapter skips from H1 to H3; insert an H2 for the screen reader document outline. Decorative headings detected on p. 4.",
         createdAt: "2026-03-22T11:00:00Z",
@@ -315,9 +315,10 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-1b",
         taskId: "task-001",
-        criterionId: "C1",
+        criterionIds: ["C1"],
+        tag: "quick_fix",
         comment:
-          "The learning objectives section has no landmark role. Screen readers cannot jump directly to key sections without a skip-navigation link or ARIA landmark.",
+          "The learning objectives section has no landmark role. Add role=\"navigation\" or a skip-navigation link — this is a one-line change.",
         createdAt: "2026-03-22T11:02:00Z",
         anchor: {
           type: "web",
@@ -328,7 +329,8 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-1c",
         taskId: "task-001",
-        criterionId: "C1",
+        criterionIds: ["C1"],
+        tag: "general_feedback",
         comment:
           "The paragraph introduces both wave and particle concepts in the same sentence without visual separation. DOM reading order may not match intended instructional flow for AT users.",
         createdAt: "2026-03-22T11:04:00Z",
@@ -338,11 +340,12 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C2 — proficient (1 annotation)
+      // C2 — proficient (1 annotation, general_feedback — exercises "no To-Do List" case)
       {
         id: "ann-demo-2",
         taskId: "task-001",
-        criterionId: "C2",
+        criterionIds: ["C2"],
+        tag: "general_feedback",
         comment:
           "Figure 3.1 caption text uses a reduced-contrast gray on the beige background (~3.1:1). Darken the caption to meet WCAG AA (4.5:1 for small text).",
         createdAt: "2026-03-22T11:05:00Z",
@@ -352,11 +355,12 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C3 — needs_improvement (3 annotations → negative polarity)
+      // C3 — needs_improvement: 2 action_items + 1 general_feedback
       {
         id: "ann-demo-3",
         taskId: "task-001",
-        criterionId: "C3",
+        criterionIds: ["C3"],
+        tag: "action_item",
         comment:
           "The figure placeholder uses a generic icon with no alt text or aria-label. Replace with a descriptive alternative explaining the interference pattern shown.",
         createdAt: "2026-03-22T11:12:00Z",
@@ -369,7 +373,8 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-3b",
         taskId: "task-001",
-        criterionId: "C3",
+        criterionIds: ["C3"],
+        tag: "action_item",
         comment:
           "This paragraph introduces the double-slit result without a text description of the interference pattern figure above it. Students using screen readers cannot access the visual.",
         createdAt: "2026-03-22T11:13:00Z",
@@ -382,7 +387,8 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-3c",
         taskId: "task-001",
-        criterionId: "C3",
+        criterionIds: ["C3"],
+        tag: "general_feedback",
         comment:
           "The \"Key Insight\" callout uses a decorative border and color cue without an accessible role or label. Screen readers will read it as a plain paragraph with no structural context.",
         createdAt: "2026-03-22T11:14:00Z",
@@ -392,13 +398,14 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C4 — needs_improvement (1 annotation)
+      // C4 — needs_improvement: linked to BOTH C3 and C4 (exercises multi-criterion "Also under" indicator)
       {
         id: "ann-demo-4",
         taskId: "task-001",
-        criterionId: "C4",
+        criterionIds: ["C3", "C4"],
+        tag: "action_item",
         comment:
-          "The de Broglie equation λ = h/p is rendered as styled text inside a div with role=\"math\" but no MathML or alternative text. Screen readers cannot interpret the equation semantically.",
+          "The de Broglie equation λ = h/p is rendered as styled text with no MathML or alt text. Screen readers cannot interpret the equation — affects both alt-text (C3) and multimedia accessibility (C4).",
         createdAt: "2026-03-22T11:18:00Z",
         anchor: {
           type: "web",
@@ -406,13 +413,14 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C5 — mixed (needs_improvement + exceeds)
+      // C5 — mixed: quick_fix
       {
         id: "ann-demo-5",
         taskId: "task-001",
-        criterionId: "C5",
+        criterionIds: ["C5"],
+        tag: "quick_fix",
         comment:
-          "The learning objectives list uses bullet spans instead of a semantic <ul>/<ol>. Keyboard users and AT cannot distinguish it as a list or navigate its items individually.",
+          "The learning objectives list uses bullet spans instead of a semantic <ul>/<ol>. Swap the wrapper element — keyboard and AT users cannot navigate list items individually.",
         createdAt: "2026-03-22T11:24:00Z",
         anchor: {
           type: "web",
@@ -420,11 +428,12 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C6 — exceeds (3 annotations → positive polarity)
+      // C6 — exceeds: all general_feedback (exercises "no To-Do List" on an exceeds criterion)
       {
         id: "ann-demo-6",
         taskId: "task-001",
-        criterionId: "C6",
+        criterionIds: ["C6"],
+        tag: "general_feedback",
         comment:
           "The Key Terms section uses a <dl>/<dt>/<dd> structure — exemplary semantic markup for a glossary. Screen readers announce each term/definition pair correctly.",
         createdAt: "2026-03-22T11:30:00Z",
@@ -437,7 +446,8 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-6b",
         taskId: "task-001",
-        criterionId: "C6",
+        criterionIds: ["C6"],
+        tag: "general_feedback",
         comment:
           "\"Wave function collapse\" definition pairs concise label with an accurate, self-contained description — no external reference needed. Excellent for AT users reading out of context.",
         createdAt: "2026-03-22T11:31:00Z",
@@ -450,7 +460,8 @@ function demoSessionForOer001(): IReviewSession {
       {
         id: "ann-demo-6c",
         taskId: "task-001",
-        criterionId: "C6",
+        criterionIds: ["C6"],
+        tag: "general_feedback",
         comment:
           "\"Interference pattern\" definition avoids jargon and provides a complete self-contained explanation — strong plain-language writing that benefits all learners.",
         createdAt: "2026-03-22T11:32:00Z",
@@ -460,19 +471,57 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C7 — needs_improvement (1 annotation)
+      // C7 — needs_improvement: quick_fix
       {
         id: "ann-demo-7",
         taskId: "task-001",
-        criterionId: "C7",
+        criterionIds: ["C7"],
+        tag: "quick_fix",
         comment:
-          "Review question 1 contains no hyperlinks, but its instructional framing demonstrates the ambiguous-link pattern: \"calculate\" and \"compare\" reference external tables not linked here.",
+          "Review question 1 contains ambiguous link text. Replace 'click here' and 'read more' with descriptive labels that make sense out of context — a straightforward copy fix.",
         createdAt: "2026-03-22T11:36:00Z",
         anchor: {
           type: "web",
           selectedText: "An electron is accelerated through a potential difference of 100 V.",
           rects: [],
         },
+      },
+    ],
+    freeNotes: [
+      // Two unlinked notes → appear in Reviewer's General Comments section
+      {
+        id: "fn-demo-1",
+        taskId: "task-001",
+        text: "Overall this resource lacks a coherent accessibility strategy. Individual fixes will help, but a structural review against WCAG 2.1 AA is recommended before the next revision cycle.",
+        tag: "general_feedback",
+        criterionIds: [],
+        createdAt: "2026-03-22T12:00:00Z",
+      },
+      {
+        id: "fn-demo-2",
+        taskId: "task-001",
+        text: "Please run the resource through an automated checker (axe, WAVE) and attach the report to your revision submission — it will surface issues beyond what inline annotation can cover.",
+        tag: "action_item",
+        criterionIds: [],
+        createdAt: "2026-03-22T12:05:00Z",
+      },
+      // One note linked to C1 with action_item tag → appears in C1's To-Do List
+      {
+        id: "fn-demo-3",
+        taskId: "task-001",
+        text: "Heading structure fix (C1) is the highest-priority item. Address it before the other criteria — a corrected DOM outline will resolve several downstream AT navigation issues automatically.",
+        tag: "action_item",
+        criterionIds: ["C1"],
+        createdAt: "2026-03-22T12:10:00Z",
+      },
+      // One note linked to C5 with general_feedback tag → does NOT appear in To-Do (general only)
+      {
+        id: "fn-demo-4",
+        taskId: "task-001",
+        text: "The keyboard interaction issues in C5 are partly offset by the excellent microcopy. If you address the focus-trap and color-only errors, this criterion is likely to reach Exceeds.",
+        tag: "general_feedback",
+        criterionIds: ["C5"],
+        createdAt: "2026-03-22T12:15:00Z",
       },
     ],
     ratings: {
