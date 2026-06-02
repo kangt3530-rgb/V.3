@@ -5,6 +5,7 @@ import type { ChatMessage, AIPreferences, CommentNudgeContext } from "../api/ai"
 import { DEFAULT_AI_PREFERENCES } from "../api/ai";
 import type {
   IAnnotation,
+  IFreeNote,
   ICriterionRating,
   IReviewSession,
   OerType,
@@ -37,7 +38,17 @@ interface ReviewState extends IReviewSession {
 
   addAnnotation: (annotation: IAnnotation) => void;
   removeAnnotation: (annotationId: string) => void;
+  updateAnnotation: (annotationId: string, partial: Partial<Pick<IAnnotation, "comment" | "tag" | "criterionIds">>) => void;
   getAnnotationsForCriterion: (criterionId: string) => IAnnotation[];
+
+  addFreeNote: (note: IFreeNote) => void;
+  updateFreeNote: (noteId: string, partial: Partial<Pick<IFreeNote, "text" | "tag" | "criterionIds">>) => void;
+  removeFreeNote: (noteId: string) => void;
+  getLinkedFreeNotesForCriterion: (criterionId: string) => IFreeNote[];
+
+  linkAnnotationToCriterion: (annotationId: string, criterionId: string) => void;
+  unlinkAnnotationFromCriterion: (annotationId: string, criterionId: string) => void;
+  getUnlinkedAnnotations: () => IAnnotation[];
 
   toggleNeedsImprovementActive: (criterionId: string) => void;
   toggleExceedsActive: (criterionId: string) => void;
@@ -95,6 +106,7 @@ const defaultSession = (): Omit<
   "taskId" | "oerId" | "oerType" | "oerSource" | "rubricTemplateId"
 > => ({
   annotations: [],
+  freeNotes: [],
   ratings: {},
   splitRatio: layout.defaultSplit,
   oerScrollY: 0,
@@ -151,8 +163,55 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       annotations: s.annotations.filter((a) => a.id !== annotationId),
     })),
 
+  updateAnnotation: (annotationId, partial) =>
+    set((s) => ({
+      annotations: s.annotations.map((a) => a.id === annotationId ? { ...a, ...partial } : a),
+    })),
+
   getAnnotationsForCriterion: (criterionId) =>
-    get().annotations.filter((a) => a.criterionId === criterionId),
+    get().annotations.filter((a) => {
+      // Guard against legacy persisted sessions that stored criterionId: string
+      const ids = Array.isArray(a.criterionIds)
+        ? a.criterionIds
+        : [(a as unknown as { criterionId?: string }).criterionId ?? ""].filter(Boolean);
+      return ids.includes(criterionId);
+    }),
+
+  addFreeNote: (note) =>
+    set((s) => ({ freeNotes: [...s.freeNotes, note] })),
+
+  updateFreeNote: (noteId, partial) =>
+    set((s) => ({
+      freeNotes: s.freeNotes.map((n) => n.id === noteId ? { ...n, ...partial } : n),
+    })),
+
+  removeFreeNote: (noteId) =>
+    set((s) => ({ freeNotes: s.freeNotes.filter((n) => n.id !== noteId) })),
+
+  getLinkedFreeNotesForCriterion: (criterionId) =>
+    get().freeNotes.filter((n) => n.criterionIds.includes(criterionId)),
+
+  linkAnnotationToCriterion: (annotationId, criterionId) =>
+    set((s) => ({
+      annotations: s.annotations.map((a) => {
+        if (a.id !== annotationId) return a;
+        const ids = Array.isArray(a.criterionIds) ? a.criterionIds : [];
+        return ids.includes(criterionId) ? a : { ...a, criterionIds: [...ids, criterionId] };
+      }),
+    })),
+
+  unlinkAnnotationFromCriterion: (annotationId, criterionId) =>
+    set((s) => ({
+      annotations: s.annotations.map((a) =>
+        a.id !== annotationId ? a : { ...a, criterionIds: (Array.isArray(a.criterionIds) ? a.criterionIds : []).filter((id) => id !== criterionId) }
+      ),
+    })),
+
+  getUnlinkedAnnotations: () =>
+    get().annotations.filter((a) => {
+      const ids = Array.isArray(a.criterionIds) ? a.criterionIds : [];
+      return ids.length === 0;
+    }),
 
   toggleNeedsImprovementActive: (criterionId) =>
     set((s) => {
@@ -240,6 +299,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       oerSource:        s.oerSource,
       rubricTemplateId: s.rubricTemplateId,
       annotations:      s.annotations,
+      freeNotes:        s.freeNotes,
       ratings:          s.ratings,
       splitRatio:       s.splitRatio,
       oerScrollY:       s.oerScrollY,

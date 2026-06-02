@@ -5,6 +5,8 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { IAnnotation, IRubricTemplate } from "../../../api/types";
+import { useReviewStore } from "../../../store/reviewStore";
+import { TAG_CONFIG } from "../annotationTagConfig";
 import { AnnotationPopover } from "./AnnotationPopover";
 import { OERMetadataSummary } from "../RubricPane/OERMetadataSummary";
 
@@ -48,9 +50,11 @@ export function MockOERRenderer({
   const scrollRef  = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const [selection, setSelection] = useState<SelectionCapture | null>(null);
-  const [pending,   setPending]   = useState<SelectionCapture | null>(null);
-  const [hovered,   setHovered]   = useState<HoverState | null>(null);
+  const [selection,          setSelection]          = useState<SelectionCapture | null>(null);
+  const [pending,            setPending]            = useState<SelectionCapture | null>(null);
+  const [hovered,            setHovered]            = useState<HoverState | null>(null);
+  const [activeToolbar,      setActiveToolbar]      = useState<HoverState | null>(null);
+  const [editingAnnotation,  setEditingAnnotation]  = useState<IAnnotation | null>(null);
 
   // ── Bi-directional nav: scroll to annotation anchor ───────────────────────
   useEffect(() => {
@@ -61,15 +65,16 @@ export function MockOERRenderer({
     scrollRef.current.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
   }, [activeAnnotationId, annotations]);
 
-  // ── Clear selection on outside click ──────────────────────────────────────
+  // ── Clear selection / active toolbar on outside click ────────────────────
   useEffect(() => {
     function handler(e: MouseEvent) {
       const el = e.target as Node;
-      // Keep selection if clicking inside the toolbar or popover
-      const toolbar = document.getElementById("oer-floating-toolbar");
-      const popover = document.getElementById("oer-annotation-popover");
-      if (toolbar?.contains(el) || popover?.contains(el)) return;
+      const toolbar       = document.getElementById("oer-floating-toolbar");
+      const popover       = document.getElementById("oer-annotation-popover");
+      const actionToolbar = document.getElementById("oer-action-toolbar");
+      if (toolbar?.contains(el) || popover?.contains(el) || actionToolbar?.contains(el)) return;
       setSelection(null);
+      setActiveToolbar(null);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -127,6 +132,35 @@ export function MockOERRenderer({
     });
   }
 
+  // ── Click on annotation highlight → show action toolbar ──────────────────
+  function handleClick(e: ReactMouseEvent<HTMLDivElement>) {
+    if (readOnly || selection || pending) return;
+    const content = contentRef.current;
+    const outer   = outerRef.current;
+    if (!content || !outer) return;
+
+    const contentRect = content.getBoundingClientRect();
+    const outerRect   = outer.getBoundingClientRect();
+    const cx = e.clientX - contentRect.left;
+    const cy = e.clientY - contentRect.top;
+
+    for (const ann of annotations) {
+      for (const rect of ann.anchor.rects) {
+        if (cx >= rect.left && cx <= rect.left + rect.width &&
+            cy >= rect.top  && cy <= rect.top  + rect.height) {
+          setActiveToolbar({
+            annotation: ann,
+            viewX: e.clientX - outerRect.left,
+            viewY: e.clientY - outerRect.top,
+          });
+          setHovered(null);
+          return;
+        }
+      }
+    }
+    setActiveToolbar(null);
+  }
+
   // ── Virtual hover: map mouse position to annotation highlights ────────────
   function handleMouseMove(e: ReactMouseEvent<HTMLDivElement>) {
     if (readOnly) return;
@@ -172,6 +206,7 @@ export function MockOERRenderer({
         ref={scrollRef}
         className="absolute inset-0 overflow-y-auto"
         onMouseUp={readOnly ? undefined : handleMouseUp}
+        onClick={readOnly ? undefined : handleClick}
         onMouseMove={readOnly ? undefined : handleMouseMove}
         onMouseLeave={() => setHovered(null)}
       >
@@ -259,18 +294,52 @@ export function MockOERRenderer({
         </div>
       )}
 
-      {/* ── Hover tooltip for existing annotations ───────────────────────── */}
-      {hovered && !selection && !pending && (
+      {/* ── Hover tooltip (read-only preview, hidden when toolbar active) ─── */}
+      {hovered && !selection && !pending && !activeToolbar && (
         <AnnotationTooltip
           annotation={hovered.annotation}
           viewX={hovered.viewX}
           viewY={hovered.viewY}
           rubricTemplate={rubricTemplate}
-          // eslint-disable-next-line react-hooks/refs -- measured dimensions for tooltip placement
+          // eslint-disable-next-line react-hooks/refs
           containerWidth={outerRef.current?.offsetWidth ?? 600}
           // eslint-disable-next-line react-hooks/refs
           containerHeight={outerRef.current?.offsetHeight ?? 400}
         />
+      )}
+
+      {/* ── Click-to-activate action toolbar (Edit / Delete) ─────────────── */}
+      {activeToolbar && !editingAnnotation && (
+        <AnnotationActionToolbar
+          annotation={activeToolbar.annotation}
+          viewX={activeToolbar.viewX}
+          viewY={activeToolbar.viewY}
+          rubricTemplate={rubricTemplate}
+          // eslint-disable-next-line react-hooks/refs
+          containerWidth={outerRef.current?.offsetWidth ?? 600}
+          // eslint-disable-next-line react-hooks/refs
+          containerHeight={outerRef.current?.offsetHeight ?? 400}
+          onEdit={() => { setEditingAnnotation(activeToolbar.annotation); setActiveToolbar(null); }}
+          onDelete={() => setActiveToolbar(null)}
+        />
+      )}
+
+      {/* ── Edit annotation popover ───────────────────────────────────────── */}
+      {editingAnnotation && (
+        <div id="oer-annotation-popover">
+          <AnnotationPopover
+            containerRef={outerRef}
+            selectedText={editingAnnotation.anchor.selectedText}
+            rects={editingAnnotation.anchor.rects}
+            anchorType={editingAnnotation.anchor.type}
+            popoverX={editingAnnotation.anchor.rects[0]?.left ?? 0}
+            popoverY={editingAnnotation.anchor.rects[0]?.top ?? 0}
+            rubricTemplate={rubricTemplate}
+            editAnnotation={editingAnnotation}
+            onSave={() => setEditingAnnotation(null)}
+            onCancel={() => setEditingAnnotation(null)}
+          />
+        </div>
       )}
     </div>
   );
@@ -327,6 +396,93 @@ function FloatingToolbar({
   );
 }
 
+// ─── Action toolbar (click-activated, interactive) ────────────────────────────
+
+function AnnotationActionToolbar({
+  annotation,
+  viewX,
+  viewY,
+  rubricTemplate,
+  containerWidth,
+  containerHeight,
+  onEdit,
+  onDelete,
+}: {
+  annotation:      IAnnotation;
+  viewX:           number;
+  viewY:           number;
+  rubricTemplate?: IRubricTemplate;
+  containerWidth:  number;
+  containerHeight: number;
+  onEdit:          () => void;
+  onDelete:        () => void;
+}) {
+  const removeAnnotation = useReviewStore((s) => s.removeAnnotation);
+
+  const TOOLBAR_W = 320;
+  const TOOLBAR_H = 80;
+  let left = viewX + 12;
+  let top  = viewY - TOOLBAR_H - 8;
+  if (left + TOOLBAR_W > containerWidth - 8)  left = viewX - TOOLBAR_W - 12;
+  if (top < 8)                                 top  = viewY + 20;
+  if (top + TOOLBAR_H > containerHeight - 8)   top  = containerHeight - TOOLBAR_H - 8;
+
+  const criterionIds = Array.isArray(annotation.criterionIds) && annotation.criterionIds.length > 0
+    ? annotation.criterionIds
+    : [(annotation as unknown as { criterionId?: string }).criterionId].filter((id): id is string => !!id);
+  const firstCriterion = rubricTemplate?.criteria.find((c) => criterionIds.includes(c.id));
+
+  return (
+    <div
+      id="oer-action-toolbar"
+      className="absolute z-50 w-80 bg-surface-container-lowest rounded-sm shadow-ambient overflow-hidden border border-outline-variant/20"
+      style={{ left: Math.max(8, left), top: Math.max(8, top) }}
+    >
+      {/* Header — criterion + excerpt */}
+      <div className="px-3 py-2 bg-surface-container-low border-b border-outline-variant/20">
+        <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-secondary truncate">
+          {firstCriterion ? `${firstCriterion.id}: ${firstCriterion.title}` : "Unlinked annotation"}
+        </p>
+        <p className="text-body-sm text-on-surface-variant line-clamp-1 mt-0.5 italic">
+          "{annotation.anchor.selectedText.slice(0, 60)}{annotation.anchor.selectedText.length > 60 ? "…" : ""}"
+        </p>
+      </div>
+      {/* Body: tag + comment */}
+      <div className="px-3 pt-2 pb-1 space-y-1.5">
+        {(() => {
+          const cfg = TAG_CONFIG[annotation.tag ?? "general_feedback"];
+          return (
+            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-current/20 text-[10px] font-label font-semibold ${cfg.cls}`}>
+              <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>{cfg.icon}</span>
+              {cfg.label}
+            </span>
+          );
+        })()}
+        <p className="text-body-sm text-on-surface leading-relaxed">{annotation.comment}</p>
+      </div>
+      {/* Footer: actions */}
+      <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-outline-variant/15">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-outline-variant/40 text-on-surface-variant hover:border-secondary hover:text-secondary transition-colors text-label-sm font-label font-semibold uppercase tracking-widest"
+        >
+          <span className="material-symbols-outlined text-[13px]">edit</span>
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={() => { removeAnnotation(annotation.id); onDelete(); }}
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-error/30 text-error/70 hover:border-error hover:text-error transition-colors text-label-sm font-label font-semibold uppercase tracking-widest"
+        >
+          <span className="material-symbols-outlined text-[13px]">delete</span>
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Hover tooltip ────────────────────────────────────────────────────────────
 
 function AnnotationTooltip({
@@ -346,7 +502,15 @@ function AnnotationTooltip({
 }) {
   const TOOLTIP_W = 256;
   const TOOLTIP_H = 100;
-  const criterion = rubricTemplate?.criteria.find((c) => c.id === annotation.criterionId);
+
+  // Handle both new criterionIds[] and legacy criterionId string
+  const criterionIds = Array.isArray(annotation.criterionIds) && annotation.criterionIds.length > 0
+    ? annotation.criterionIds
+    : [(annotation as unknown as { criterionId?: string }).criterionId].filter((id): id is string => !!id);
+  const criterion = rubricTemplate?.criteria.find((c) => criterionIds.includes(c.id));
+  const criterionLabel = criterion
+    ? `${criterion.id}: ${criterion.title}`
+    : criterionIds[0] ?? "Unlinked";
 
   let left = viewX + 12;
   let top  = viewY - 8;
@@ -360,7 +524,7 @@ function AnnotationTooltip({
     >
       <div className="px-3 py-2 bg-surface-container-low">
         <p className="text-label-sm font-label font-semibold uppercase tracking-widest text-secondary truncate">
-          {criterion ? `${criterion.id}: ${criterion.title}` : annotation.criterionId}
+          {criterionLabel}
         </p>
       </div>
       <div className="px-3 py-2">

@@ -1,10 +1,10 @@
 # **Product Requirement Document (PRD): OER Certification Hub**
 
-**Version:** 3.5
+**Version:** 3.6
 
 **Status:** Planning / For Review
 
-**Target Release:** July,2026 
+**Target Release:** July,2026
 
 ## **1\. General Description**
 
@@ -20,6 +20,7 @@
 | 2026-05-18 | v3.3 | Block C fully redesigned. Replaced the dual Report-and-Revision-Card system with a single per-rubric Revision Report. Removed Revision Cards as a separate construct; the Author now reads feedback and records revisions in one unified reading interface. Established spatial parity with Block B (three-pane layout). Defined two-mode AI assistance (Conversational \+ Generative). Removed "evidence" terminology from the Author-facing interface in favor of "annotation." |
 | 2026-05-19 | v3.4 | Added two new appendix blocks: Block B+ (Reviewer Console AI Augmentation) and Block C+ (Author Console AI Augmentation), formalizing the AI feature set across both consoles. Introduced the three-mode AI interaction principle (Always-on / Nudge / On-demand) and added two cross-cutting AI principles to Section 2.3: AI Transparency over Detection and AI Data Handling Policy. Embedded user-flow visuals into Block A, B, and C user-flow sections. |
 | 2026-05-29 | v3.5 | Added Block O: Initial User Onboarding (Multi-Role Activation). Introduces a five-stage onboarding flow covering Welcome, Role Identification, Profile Basics, Role-Specific Essentials, and Primed First-Action Landing. Establishes Progressive Disclosure as a cross-cutting design principle, deferring rubric, license, and methodology education from onboarding to natural touchpoints in Blocks A, B, and C. |
+| 2026-06-01 | v3.6 | Annotation system overhaul based on user interview insights. (1) Replaced the unimplemented positive/negative polarity dimension with a new three-option **Annotation Tag** system: **General Feedback** (default), **Action Item**, and **Quick Fix**. The tag is reviewer-declared and not auto-detected. (2) Made criterion linking **optional** for annotations and free notes, and **multi-select** (1:N): a single annotation or free note may link to zero, one, or multiple criteria. (3) Introduced the **Free Note Bank** in Block B as a sticky, expandable panel at the top of the Rubric Console, housing reviewer notes that are not anchored to OER locations. (4) Introduced a per-criterion **To-Do List** in the Block C Revision Report, auto-aggregated from Action Item and Quick Fix tagged annotations and free notes linked to that criterion. (5) Added a **Reviewer's General Comments** section at the top of the Block C Revision Report for free notes not linked to any criterion. Spatial parity between the Block B Free Note Bank and the Block C General Comments section is preserved for dual Author \+ Reviewer users. (6) Softened Block C's Principle 1 from "not task-first" to "report-first with actionable surfacing," acknowledging that an opt-in per-criterion To-Do List enhances rather than replaces the reading experience. (7) Updated NI/Exceeds rating validation: at least one annotation or free note must be linked to the criterion (in either direction); supplementary unlinked annotations and free notes remain permitted. (8) Deprecated the Auto-Categorized Evidence Bank (Strengths/Issues) feature; Evidence Bank now lists linked annotations/free notes flat, with each entry showing its Annotation Tag. |
 
 ### 
 
@@ -48,7 +49,12 @@ Note on Role Fluidity: The system supports multi-role users. A single individual
 * OER: Open Educational Resources.  
 * Revision Report: The Author-facing artifact produced from a completed rubric review. Contains the Reviewer's overall comment and anchored annotations, organized per criterion. One Revision Report per rubric review.  
 * Revision Log: A per-criterion text field where the Author records notes about their revisions or thinking. Optional in all cases.  
-* Annotation: An anchored note left by a Reviewer on a specific location in the OER, tied to a criterion. Annotations carry a positive or negative polarity tag.  
+* Annotation: A reviewer note attached to a specific anchor location in the OER. Each annotation carries an Annotation Tag (General Feedback / Action Item / Quick Fix) and may be linked to **zero, one, or multiple** rubric criteria. Annotations without a criterion link function as unbound observations.  
+* Free Note: A reviewer note that is **not anchored** to a specific OER location, written in the Free Note Bank in Block B. Carries the same Annotation Tag dimension as inline annotations and may be linked to zero, one, or multiple criteria.  
+* Free Note Bank: A sticky, expandable panel at the top of the Reviewer Console's Rubric Panel (Block B). Houses reviewer notes that are not anchored to OER locations. Notes can be optionally linked to one or more criteria from within the bank. Default state: collapsed (shows count badge \+ expand chevron).  
+* Annotation Tag: A three-option classification applied to every annotation and free note, indicating its nature: **General Feedback** (default, neutral observation), **Action Item** (substantive change requiring author work), or **Quick Fix** (small, easy correction). The tag is reviewer-declared and is not auto-detected by the system. Replaces the previously specified positive/negative polarity dimension.  
+* To-Do List (per-criterion): An author-facing list within each criterion section of the Revision Report (Block C). Auto-aggregated from annotations and free notes tagged Action Item or Quick Fix that are linked to that criterion. Visually distinguishes Action Item items from Quick Fix items. Read-only with respect to content; the Author may individually check off items as a tracking aid.  
+* Reviewer's General Comments: A section at the top of the Block C Revision Report displaying free notes that have not been linked to any criterion. Provides the Author with the Reviewer's overarching, criterion-agnostic observations. Each entry carries its Annotation Tag.  
 * Digital Stamp: A digital badge that proves a resource passed peer review.  
 * Rubric: A set of standard criteria used to grade OER quality. The platform supports six rubric types (Accessibility, Copy Editing, Copyright, Disciplinary Appropriateness, eLearning Review, UDL).  
 * Feedback License: Reviewer feedback is licensed under CC BY-ND (Attribution-NoDerivs). This ensures the feedback can be shared but remains unalterable by the author or third parties.  
@@ -74,7 +80,8 @@ The current OER review process is manual and slow. Leads spend too much time for
 | Goal | Design Task | Constraints | Priority |
 | :---- | :---- | :---- | :---- |
 | **Horizontal Split Layout** | Layout	Construct a split-pane interface with "Content Display (Left)" and "Review Console (Right)." | Must support manual resizing of regions and the ability to minimize the Review Console to maximize reading space. | P0 |
-| **Evidence-Based Rating** | Establish direct mapping between OER annotations and rubric criteria. | Rating actions are only permitted when associated annotation evidence exists for a criterion. Applies to Block B (Reviewer Console) only. | P0 |
+| **Evidence-Based Rating** | Establish mapping between OER annotations / free notes and rubric criteria. | For 'Needs Improvement' or 'Exceeds' ratings, the criterion must have at least one annotation OR free note linked to it. Annotations and free notes without criterion links are permitted and serve as supplementary observations. Annotations and free notes may link to multiple criteria (1:N). Applies to Block B (Reviewer Console) only. | P0 |
+| **Actionable Feedback Surfacing** | Surface actionable items from reviewer feedback to authors in a structured, scannable form, per criterion. | Auto-aggregated from annotations and free notes tagged Action Item or Quick Fix linked to a criterion. Reviewer-declared, not auto-detected. Visually distinguishes Action Item from Quick Fix items. Displayed read-only in Block C; the Author may check off items as a tracking aid but cannot edit content. | P0 |
 | **Quality Control** | Implement mandatory onboarding and full-rubric review requirements. | Reviewers must acknowledge preamble materials; submissions are blocked until all criteria are addressed. | P1 |
 | **On-Demand AI Assistant** | Provide a collapsible, full-height AI sidebar on the right. | Hidden by default; activated by user trigger. AI must have permissions to read current OER content and review data. Applies to both Block B and Block C with mode-specific scoping. | P1 |
 | **Author Report Cohesion** | Present per-rubric reviewer feedback as a single reading-and-response interface. | Each rubric review produces an independent Revision Report. The system does not aggregate rubrics into a unified report. No separate Revision Card construct. | P0 |
@@ -138,7 +145,7 @@ Stages 4A, 4B, and 4C run in sequence only for the roles the user selected in St
 
 * **Action:** User passes through this stage with no additional data collection or screens shown.  
 * **System Logic:**  
-  * The system marks `user.author_onboarded = true` on entry.  
+  * The system marks user.author\_onboarded \= true on entry.  
   * User is advanced directly to Stage 4B (if also Reviewer), Stage 4C (if also Coordinator), or Stage 5\.  
 * **Design Rationale:** All Author-facing education — rubric selection, CC license, third-party content disclosure, self-review mode — is embedded in Block A's submission flow at natural decision points. Re-teaching these in onboarding would violate Progressive Disclosure.
 
@@ -149,7 +156,7 @@ Each sub-stage is its own screen with one focused input.
 **Stage 4B.1: Reviewer Type**
 
 * Single-select between Academic Peer and Industry Expert. Mandatory.  
-* Persisted to `reviewer_profile.type`. Surfaced alongside the reviewer's feedback in Block B/C to give Authors context on the reviewer's perspective.
+* Persisted to reviewer\_profile.type. Surfaced alongside the reviewer's feedback in Block B/C to give Authors context on the reviewer's perspective.
 
 **Stage 4B.2: Expertise Tags**
 
@@ -170,7 +177,7 @@ Each sub-stage is its own screen with one focused input.
 * Mandatory checkbox. Required to advance.  
 * Consent is logged with timestamp and license version string for compliance.
 
-On completion of all four sub-stages, the system marks `user.reviewer_onboarded = true`.
+On completion of all four sub-stages, the system marks user.reviewer\_onboarded \= true.
 
 **Stage 4C: Coordinator Branch (Non-Blocking Placeholder)**
 
@@ -180,8 +187,8 @@ On completion of all four sub-stages, the system marks `user.reviewer_onboarded 
   * Notification opt-in email for product launch  
 * **System Logic:**  
   * All inputs are optional. A clearly visible Skip option is present.  
-  * Submitted inputs persist to `coordinator_interest_log`. The associated schema reserves fields for permission tier, managed organizations, and mediation queue access scope so that the future Coordinator activation will not require database migration.  
-  * `user.coordinator_interest_logged = true` on any submission, including empty submissions.
+  * Submitted inputs persist to coordinator\_interest\_log. The associated schema reserves fields for permission tier, managed organizations, and mediation queue access scope so that the future Coordinator activation will not require database migration.  
+  * user.coordinator\_interest\_logged \= true on any submission, including empty submissions.
 
 **Stage 5: Primed First-Action Landing**
 
@@ -210,7 +217,7 @@ On completion of all four sub-stages, the system marks `user.reviewer_onboarded 
 | O.10 | As any user, I want to land on a screen that clearly shows my next step. | **Primed First-Action Landing:** Role-specific dashboard with prominent first-action CTA. Reviewer landing pre-fetches matched tasks; Author landing emphasizes Submit New Resource. | P0 | Planned |
 | O.11 | As a user adding a new role to an existing account, I want to onboard only into the new role. | **Per-Role Onboarding State:** Database tracks onboarding completion per role. Adding a new role re-triggers only that role's Stage 4 branch. | P1 | Planned |
 | O.12 | As any user, I want my interrupted onboarding to resume where I left off. | **Resumable Onboarding State:** Per-stage progress persisted on each Continue. Returning users mid-flow land on the last incomplete required step. | P1 | Planned |
-| O.13 | As an Author, I want to avoid friction during onboarding since the submission flow already educates me. | **Zero-Step Author Branch:** Author selection in Stage 2 requires no further Stage 4 input. `user.author_onboarded` is marked true on stage entry. | P0 | Planned |
+| O.13 | As an Author, I want to avoid friction during onboarding since the submission flow already educates me. | **Zero-Step Author Branch:** Author selection in Stage 2 requires no further Stage 4 input. user.author\_onboarded is marked true on stage entry. | P0 | Planned |
 
 ### **Block A: Submission & Dashboard (Core Entry System)**
 
@@ -281,39 +288,50 @@ Step 1: Session Initiation & Dynamic Loading
   * Right Pane: Injects the specific Rubric Template. Default Expanded State: Upon initial load, all criteria accordions within the Rubric Template are fully expanded by default. This ensures James can immediately read and comprehend the detailed standards across all criteria before beginning his contextual annotation.  
   * Preamble Prompt: Before displaying the criteria list, the system provides access to the Rubric Introduction/Preamble (including Operational Definition, Framing Language, and Intended Use). James has the option to review this foundational context or skip directly to evaluation if he is already familiar with the rubric.
 
-Step 2: Contextual Annotation (Evidence Gathering)
+Step 2: Contextual Annotation & Free Note Capture (Evidence Gathering)
 
-* Action: James reads the OER on the left. He finds a section that violates or exemplifies a standard.  
+* Action: James reads the OER on the left. He finds a section that violates or exemplifies a standard, or he forms an overarching observation that does not anchor to a specific location.  
 * System Logic:  
-  * James highlights a text string or selects an element (image/video).  
-  * Frictionless Placeholder Annotation: James has the option to simply highlight the text as a visual bookmark or placeholder without immediately writing a comment. The system allows saving "Uncommented Highlights" to reduce friction during the initial reading phase.  
-  * A Contextual Menu (Annotation Engine) appears near the selection.  
-  * James selects the Target Criterion from a dropdown to "tag" this feedback, and categorizes it as either a strength (Positive) or an issue (Negative).  
+  * **Inline Annotation:** James highlights a text string or selects an element (image/video). A Contextual Menu (Annotation Engine) appears near the selection.  
+  * **Frictionless Placeholder Annotation:** James has the option to simply highlight the text as a visual bookmark or placeholder without immediately writing a comment. The system allows saving "Uncommented Highlights" to reduce friction during the initial reading phase.  
+  * **Annotation Tag (Required, Default \= General Feedback):** Within the Contextual Menu, James selects an Annotation Tag from a three-option control: **General Feedback** (default), **Action Item**, or **Quick Fix**. The tag is reviewer-declared; the system performs no auto-detection or sentiment analysis. The default selection minimizes friction — James can leave the tag at General Feedback for most observations and explicitly elevate to Action Item or Quick Fix only when the note implies a specific change the Author should make.  
+  * **Criterion Linking (Optional, Multi-Select):** James may link this annotation to zero, one, or multiple criteria via the Contextual Menu's criterion picker. Unlinked annotations are saved as unbound observations and remain editable; they can be linked to one or more criteria at any later point.  
   * James enters an actionable comment and saves (or leaves it as a placeholder to revisit later).  
-  * Data Mapping: The annotation is saved with a criterion\_id and specific anchor coordinates to prevent "drift."
+  * **Free Note Capture:** When James wants to record an overarching observation that does not anchor to a specific OER location, he opens the Free Note Bank (sticky panel at the top of the Rubric Console — see Step 2b). Free notes carry the same Annotation Tag dimension and the same optional, multi-select criterion linking as inline annotations.  
+  * Data Mapping: Each annotation is saved with (anchor\_coordinates, comment\_text, annotation\_tag, criterion\_ids\[\]) where criterion\_ids\[\] may be empty, a single ID, or multiple IDs. Anchor coordinates are stored to prevent "drift."
+
+Step 2b: Free Note Bank (Sticky, Expandable)
+
+* Action: James writes, edits, tags, and optionally cross-links overarching notes that are not anchored to a specific OER location.  
+* System Logic:  
+  * **Position:** The Free Note Bank is a sticky panel at the top of the Rubric Console (right pane). It stays visible as James scrolls the criteria list and as he expands individual criteria below.  
+  * **Default State:** Collapsed. Shows a thin header bar with a free-note count badge (e.g., "Free Notes · 3") and an expand chevron.  
+  * **Expanded State:** Opens to a moderate vertical footprint (default approximately 25–35% of the Rubric Console height) and displays the list of free notes. The criteria list below scrolls independently underneath the sticky bank. James can manually collapse the bank at any time to reclaim vertical space.  
+  * **Note Composition:** Each free note row contains a text area for the note, an Annotation Tag selector (General Feedback / Action Item / Quick Fix, default General Feedback), and a Criterion Link control (multi-select chips) that allows linking the note to zero or more criteria.  
+  * **Linking from the Bank:** James can link an existing free note to one or more criteria from within the bank without leaving his current scroll position. Linked free notes also surface inside the Evidence Bank of each linked criterion (see Step 3).  
+  * **Unlinked Free Notes:** Free notes with no criterion link are valid and persisted. They will surface on the Author side in the Block C "Reviewer's General Comments" section at the top of the Revision Report.
 
 Step 3: Criterion-Level Evaluation & Progress Saving
 
 * Action: James clicks an accordion item in the Rubric Panel on the right to evaluate a specific Criterion.  
 * System Logic:  
   * Auto-Layout Adjustment: Upon interacting with the Rubric Panel/Console on the right, the system automatically adjusts the split-pane to a 5:5 ratio. This maximizes space for qualitative feedback and review entry, as the relative need for wide-screen OER viewing decreases during the synthesis/rating phase.  
-  * Evidence Bank Review: The Evidence Bank for that Criterion expands, displaying all linked annotations from Step 2\. These serve as contextual reminders to help James recall specific issues or exemplary practices found during his reading.  
-  * James clicks a snippet in the Evidence Bank; the Left Pane auto-scrolls and highlights the original location to refresh his memory of the context.  
+  * **Evidence Bank Review:** The Evidence Bank for that Criterion expands, displaying **all linked items** for that criterion — inline annotations linked to it (from Step 2\) plus free notes linked to it (from Step 2b). Each entry displays its Annotation Tag icon (General Feedback / Action Item / Quick Fix) and its source type (inline annotation with anchor location, or free note). The list is flat and ordered by creation time; no sentiment-based auto-categorization is applied.  
+  * James clicks an inline annotation snippet in the Evidence Bank; the Left Pane auto-scrolls and highlights the original location to refresh his memory of the context. Free note entries do not trigger OER navigation (they have no anchor).  
   * Rating & Synthesis: Based on the gathered evidence, James selects a rating via the Single-Point Rubric UI (Exceeds, Exemplifies Standard, or Needs Improvement). He provides two distinct inputs at this stage:  
     * **Overall Comment** — a holistic, criterion-level assessment that summarizes James's view of how the OER performs on this criterion. This field is independent of any anchored annotation and represents James's overall judgment.  
-    * **Anchored Annotations** — the specific notes James left in Step 2, automatically aggregated into the Evidence Bank for this criterion.  
+    * **Anchored Annotations & Linked Free Notes** — the specific notes James left in Step 2 (and Step 2b free notes linked to this criterion), automatically aggregated into the Evidence Bank for this criterion.  
       The text input boxes for the qualitative comments must support scrollbars and a pop-up enlarged editing mode for comfortable long-form writing. The two inputs are visibly distinct in the UI; the Overall Comment is not treated as a "summary" of the anchored annotations.  
-  * Auto-Categorized Evidence Bank: The system automatically sorts the annotations within the Evidence Bank into "Strengths" (good) and "Issues" (bad) based on the tags applied in Step 2, visually aligning them with the respective "Exceeds" and "Needs Improvement" input columns.  
   * Glossary Tooltips: Technical terms within the rubric (e.g., "heading hierarchy") feature clickable links that provide instant vocabulary definitions to ensure accurate and consistent evaluation.  
-  * Draft Saving: The system triggers an Auto-Save whenever a rating is selected or an annotation is added. James can also manually click "Save Draft" to secure his current session state (including split-pane proportions and scroll positions).  
-  * Conditional Enforcement: If Needs Improvement or Exceeds is chosen, the system mandates a qualitative justification and verifies the presence of supporting evidence in the bank.
+  * Draft Saving: The system triggers an Auto-Save whenever a rating is selected or an annotation is added. James can also manually click "Save Draft" to secure his current session state (including split-pane proportions, scroll positions, and Free Note Bank expand/collapse state).  
+  * **Conditional Enforcement:** If Needs Improvement or Exceeds is chosen, the system mandates a qualitative justification and verifies that **at least one annotation or free note is linked to the criterion** in the Evidence Bank. Supplementary unlinked annotations or free notes may exist freely but do not satisfy this validation.
 
 Step 4: Validation & Final Submission
 
 * Action: James completes all criteria and clicks "Finalize Review."  
 * System Logic:  
   * Completeness Check: Verifies that 100% of the criteria in the Rubric have received a rating.  
-  * Evidence Check: The system blocks submission if "Needs Improvement" ratings lack supporting annotation evidence in the Evidence Bank.  
+  * **Evidence Check:** The system blocks submission if "Needs Improvement" or "Exceeds" ratings lack at least one annotation OR free note linked to the corresponding criterion in the Evidence Bank. Supplementary unlinked annotations and free notes do not affect this check.  
   * State Transition: Upon confirmation, the task moves to the Coordinator's queue for professional mediation.
 
 **User Flow Visuals**  
@@ -328,11 +346,11 @@ Step 4: Validation & Final Submission
 | B.3 | As a reviewer using a laptop, I want the split screen to be an optional feature so that I can view the interface comfortably without excessive scrolling. | Optional Split-Screen Toggle: A UI control to switch between the default split-pane view and a single-pane or tabbed view, ensuring all action buttons remain visible and reducing the need for manual tab switching on smaller screens. | P1 | Planned |
 | B.4 | As a reviewer, I want to read the rubric's framing language before evaluating. | Preamble & Intro Display: Optional view for "Operational Definitions" and "Framing Language" before accessing the evaluation criteria, with a skip option for returning users. | P0 | Planned |
 | B.5 | As a reviewer, I want all rubric criteria to be expanded by default when I open the console so that I can understand all the standard details before annotating. | Default Expanded Criteria: All criteria accordions/panels in the Rubric Console must be in an expanded/open state upon initial session load. | P1 | Planned |
-| B.6 | As a reviewer, I want to annotate directly on the OER content layer. | Direct Content Annotation: Support for detailed feedback anchored to specific text/objects directly on the resource layer (PDF/Web). | P0 | In Progress |
+| B.6 | As a reviewer, I want to annotate directly on the OER content layer. | Direct Content Annotation: Support for detailed feedback anchored to specific text/objects directly on the resource layer (PDF/Web). Each annotation carries an Annotation Tag (General Feedback / Action Item / Quick Fix) — see B.22. | P0 | In Progress |
 | B.7 | As a reviewer, I want to highlight content without immediately writing a comment so that I can use it as a placeholder to return to later. | Frictionless Placeholder Annotation: Support for highlighting or tagging OER content without mandating immediate text input for the comment field, reducing cognitive friction during the initial reading phase. | P1 | Planned |
-| B.8 | As a reviewer, I want to convert OER annotations directly into rating evidence. | Annotation-to-Evidence Mapping: When annotating content, users map comments to specific criteria; annotations are automatically aggregated into the corresponding Evidence Bank on the right. | P0 | In Progress |
+| B.8 | As a reviewer, I want to optionally map annotations to one or more criteria so I can build flexible evidence trails. | Optional Multi-Criterion Annotation Mapping: When annotating content, the reviewer may link an annotation to zero, one, or multiple criteria via a multi-select control. Linked annotations are automatically aggregated into the corresponding Evidence Bank(s) on the right. Unlinked annotations are permitted and persist as unbound observations. See also B.23. | P0 | Revised |
 | B.9 | As a reviewer, I want to quickly view supporting content during rating. | Bi-directional Navigation: Clicking an evidence entry in the rubric tray automatically scrolls and highlights the original annotation in the OER view (and vice-versa). | P0 | In Progress |
-| B.10 | As a reviewer, I want my annotations to be automatically categorized as positive or negative so that they naturally align with the Needs Improvement and Exceeds feedback areas. | Auto-Categorization of Evidence: The system automatically sorts and visually separates annotations within the Evidence Bank based on the sentiment/type (positive vs. negative) designated by the reviewer during the annotation phase. | P1 | Planned |
+| B.10 | ~~As a reviewer, I want my annotations to be automatically categorized as positive or negative so that they naturally align with the Needs Improvement and Exceeds feedback areas.~~ | ~~Auto-Categorization of Evidence: The system automatically sorts and visually separates annotations within the Evidence Bank based on the sentiment/type (positive vs. negative) designated by the reviewer during the annotation phase.~~ **Deprecated in v3.6.** The polarity dimension was never implemented. Annotations and free notes now carry the Annotation Tag dimension (see B.22), and the Evidence Bank renders linked items as a flat, time-ordered list with visible tag icons. No sentiment-based grouping. | — | Deprecated |
 | B.11 | As a reviewer, I want to summon an AI assistant only when needed. | Full-Height AI Sidebar: Collapsible right-hand panel providing real-time accessibility audits, tone adjustments, and criteria interpretation (P1). | P1 | Revised |
 | B.12 | As a reviewer, I want the workspace to automatically provide more space when I focus on the rubric so I can write comments comfortably. | Adaptive Layout Trigger: Automatic adjustment of the split-pane to a 5:5 ratio when the user clicks or focuses on the Rubric Console to facilitate synthesis and qualitative data entry. | P1 | Planned |
 | B.13 | As a reviewer, I want to use the standard Single-Point Rubric format and I want to provide independent feedback for both deficiencies and excellence. | Non-Exclusive Single-Point Interface: 3-column layout where "Needs Improvement" and "Exceeds" act as independent toggles, allowing for concurrent feedback. | P0 | Revised |
@@ -340,9 +358,13 @@ Step 4: Validation & Final Submission
 | B.15 | As a reviewer, I want to access the full, detailed scholarly description of each criterion so that I can fully understand the standards before rating. | Expandable Criteria Details: Rubric criteria cards support a click-to-expand or modal interaction. Upon activation, the system reveals the comprehensive criteria descriptions (from original source documents), including detailed performance indicators for Exceeds/Standard/Needs Improvement levels. | P0 | Planned |
 | B.16 | As a reviewer, I want to quickly view definitions of technical terms within the rubric so that my evaluation is accurate and consistent. | Glossary Tooltips: Technical terms (e.g., "heading hierarchy") within the rubric include clickable definition links. | P1 | Planned |
 | B.17 | As a reviewer, I want to save my progress as a draft so that I can pause a long review and resume it later without losing data. | Draft Save & Persistence: Implementation of an auto-save mechanism and a manual "Save Draft" button to ensure session data (annotations, ratings, split positions) is preserved across sessions. | P0 | Planned |
-| B.18 | As a reviewer, I want the system to remind me of my earlier findings so I can justify my final ratings with evidence. | Evidence-Driven Validation: If "Needs Improvement" or "Exceeds" is selected, the system enforces a qualitative comment. The Evidence Bank displays prior annotations for that criterion to support the reviewer's decision and ensure ratings are fact-based. | P0 | Revised |
+| B.18 | As a reviewer, I want the system to remind me of my earlier findings so I can justify my final ratings with evidence. | Evidence-Driven Validation: If "Needs Improvement" or "Exceeds" is selected, the system enforces a qualitative comment AND verifies that at least one annotation OR free note is linked to that criterion. The Evidence Bank displays all linked items (annotations \+ free notes) for that criterion to support the reviewer's decision and ensure ratings are fact-based. Supplementary unlinked items are permitted but do not satisfy the linking requirement. | P0 | Revised |
 | B.19 | As a reviewer, I must complete all criteria within a rubric module before submitting. | Full-Rubric Completion Lock: Final submission is disabled until every criterion within the selected rubric (e.g., Accessibility) is evaluated. | P0 | Revised |
-| B.20 | As a reviewer, I want to record an overall judgment for each criterion separately from my anchored annotations. | **Two Distinct Reviewer Inputs per Criterion:** Each criterion stores two separate content fields: (1) `overall_comment` — the Reviewer's holistic, criterion-level assessment, not anchored to a location; (2) `annotations[]` — the list of anchored notes. Block B's UI must present these as visibly distinct inputs. This is the data foundation for Block C's two-tier display. | P0 | Planned |
+| B.20 | As a reviewer, I want to record an overall judgment for each criterion separately from my anchored annotations. | **Two Distinct Reviewer Inputs per Criterion:** Each criterion stores two separate content fields: (1) overall\_comment — the Reviewer's holistic, criterion-level assessment, not anchored to a location; (2) annotations\[\] — the list of anchored notes. Block B's UI must present these as visibly distinct inputs. This is the data foundation for Block C's two-tier display. | P0 | Planned |
+| B.21 | As a reviewer, I want a place to capture overarching observations that don't belong to a single location in the OER. | **Free Note Bank (Sticky Top Panel):** A persistent, expandable panel at the top of the Rubric Console. Default collapsed (count badge \+ chevron). When expanded, shows a list of free notes; each note has a text area, an Annotation Tag selector, and a multi-select criterion link control. The bank remains sticky while the reviewer scrolls the criteria list. See Step 2b. | P0 | Planned |
+| B.22 | As a reviewer, I want to declare what kind of feedback each note represents — general observation, an action item, or a quick fix — so that the Author knows what's actionable. | **Annotation Tag (Three-Option, Reviewer-Declared):** Every annotation and free note carries a tag: **General Feedback** (default, neutral observation), **Action Item** (substantive change requiring author work), or **Quick Fix** (small, easy correction). The tag is set in the Contextual Menu (inline annotations) or in the Free Note row (free notes). The system performs no auto-detection. The tag drives the Block C To-Do List aggregation (see C.20). | P0 | Planned |
+| B.23 | As a reviewer, I want to optionally link a single annotation or free note to multiple criteria when the observation is genuinely cross-cutting. | **Multi-Criterion Linking (Annotations & Free Notes):** A single annotation or free note may be linked to zero, one, or multiple criteria. Linking is performed via a multi-select criterion picker in the Contextual Menu (annotations) or the Free Note row (free notes). A linked item surfaces in the Evidence Bank of every criterion it is linked to. Unlinked items are permitted and remain editable; they can be linked at any later point. | P0 | Planned |
+| B.24 | As a reviewer, I want the validation rule for NI/Exceeds ratings to count both anchored annotations and free notes as valid evidence. | **Evidence Linking Validation:** For each criterion rated Needs Improvement or Exceeds, the system requires at least one annotation OR free note linked to that criterion. Unlinked items do not satisfy the requirement. The check runs at draft save (as a soft warning) and at submission (as a hard block). | P0 | Planned |
 
 4\. Rubric Criteria Catalog (Data Schema)  
 The system will load the following specific criteria based on the assigned task:
@@ -447,7 +469,7 @@ A right-hand collapsible **AI chatbox** is always available across the entire re
 | R2 | As a reviewer, I want help deciding which criterion an annotation belongs to. | **Criterion Ranking Suggestion:** When the reviewer highlights a passage and opens the criterion dropdown, the top 3 criteria are AI-ranked based on the content of the selection. All criteria remain selectable; ranking only changes order, not availability. | Always-on | P0 | Planned |
 | R3 | As a reviewer, I want a gentle check on the tone of my comments so they read as professional and constructive. | **Tone Check:** After the reviewer writes a comment, the system optionally surfaces a suggestion if the tone is overly harsh or excessively soft. Dismissible; controllable via AI Preferences. | Nudge | P1 | Planned |
 | R4 | As a reviewer, I want quick access to standards documents (WCAG, Fair Use, etc.) without leaving the console. | **Reference Lookup:** The reviewer can ask the AI chatbox to locate a specific clause or definition from rubric-relevant standards. Results are shown with source citations. | On-demand | P1 | Planned |
-| R6+R8 | As a reviewer, I want to know if my rating, my annotations, and my overall comment are internally consistent for each criterion. | **Per-Criterion Coherence Check:** Upon completing a single criterion (rating \+ annotations \+ overall comment), the system optionally surfaces a suggestion if the three elements appear inconsistent (e.g., a Needs Improvement rating with only positive annotations). Dismissible. | Nudge | P0 | Planned |
+| R6+R8 | As a reviewer, I want to know if my rating, my annotations, and my overall comment are internally consistent for each criterion. | **Per-Criterion Coherence Check:** Upon completing a single criterion (rating \+ annotations \+ overall comment), the system optionally surfaces a suggestion if the three elements appear inconsistent (e.g., a Needs Improvement rating with no Action Item or Quick Fix tagged items linked to the criterion, or an Exceeds rating where the overall comment is mostly critical). Dismissible. | Nudge | P0 | Planned |
 | R7 | As a reviewer, I want to dictate my comments using voice instead of typing. | **Voice Input (Speech-to-Text):** A mic icon inside comment text areas lets the reviewer dictate. The transcription is editable text — the AI does not interpret or restructure what was said. | On-demand | P1 | Planned |
 | R8 (independent) | As a reviewer, I want a final pass that surfaces gaps or omissions before I submit. | **Pre-submit Gap Check:** Triggered when the reviewer initiates submission. Surfaces criteria that appear under-supported (e.g., broad comments with no annotations) or potentially overlooked dimensions. The reviewer can return to edit or proceed. | Nudge | P1 | Planned |
 | R10 | As a reviewer, I want to know what I'm walking into before I start. | **OER Metadata Summary:** At task open, the system displays objective metadata about the OER — estimated reading time, structural overview (chapter count, image count, media count), language, readability level. No quality judgment is included. | Always-on | P1 | Planned |
@@ -480,7 +502,7 @@ Block C is the Author's primary workspace after a Reviewer has completed an eval
 
 The redesigned Block C is built on three principles:
 
-1. **Report-first, not task-first.** The Author reads a Revision Report; they do not work through a to-do list. Light progress tracking is offered through a single per-criterion checkbox.  
+1. **Report-first, with actionable surfacing.** The Author's primary mode of engagement is reading a Revision Report. The reading interface is not replaced by a to-do list. However, within each criterion section, an opt-in per-criterion **To-Do List** auto-aggregates the Reviewer's Action Item and Quick Fix tagged feedback so that actionable items are scannable and trackable without forcing the Author into a task-driven workflow. Light progress tracking is offered through a per-criterion Mark Resolved checkbox and through per-item check-offs in the To-Do List.  
 2. **One rubric review at a time.** Each rubric submitted by the Author (Accessibility, Copyright, UDL, etc.) produces an independent review and an independent Revision Report. The system never merges rubrics into a single aggregated report.  
 3. **Spatial consistency with Block B.** The Author Console uses the same three-pane spatial language as the Reviewer Console (left OER, center Console, right AI overlay), with different default states. This serves users who hold both Author and Reviewer roles.
 
@@ -508,6 +530,7 @@ Step 2: Main Reading Interface
     * Overall Outcome bar (X/N proficient · X needs improvement · X exceed).  
     * A single-line status: "X items need your attention" (where X is the count of unresolved Needs Improvement criteria).  
     * Filter chips in two groups: **Rating** (Needs Improvement / Exceeds / Proficient) and **Status** (Unresolved / Resolved / Awaiting). Within a group, selections are combined with OR; across groups, with AND. The chip bar shows "Showing X of N criteria" and a "Clear filters" link.  
+  * **Reviewer's General Comments (Top Section, Conditional):** Immediately below the sticky header and above the criterion accordions, a "Reviewer's General Comments" section displays free notes from the Reviewer that have not been linked to any criterion. The section is rendered as a sticky-collapsible card; default open if any unlinked free notes exist, hidden entirely if none. Each entry shows the comment text and an Annotation Tag icon (General Feedback / Action Item / Quick Fix). This section provides spatial parity with the Block B Free Note Bank — dual Author \+ Reviewer users see overarching comments in the same screen region in both consoles. The Author can collapse the section at any time; state persists per user, per review.  
   * Criterion Accordions: All criteria are rendered as expanded accordion sections in canonical order (C1 → C8). The Author can collapse or expand individual sections; the system persists this state per user, per review.  
   * No Progress Bar by Percentage: The interface does not display a percentage-complete progress bar. Progress tracking is conveyed only through the resolved-item count in the sticky header and per-criterion checkboxes (see Step 3).
 
@@ -520,10 +543,11 @@ Step 3: Reading a Single Criterion
   1. **Criterion Header:** Criterion ID and full title (e.g., "C3 · Accessibility — Alternative Text & Image Accessibility") and rating badge.  
   2. **About this criterion:** A short rubric definition with a "Read full definition" link that opens the comprehensive rubric description. A "💬 Ask AI" inline button allows the Author to ask the AI Assistant about this criterion specifically, with the AI receiving the full criterion context.  
   3. **Reviewer's Overall Comment:** Displayed in a light-tinted card as read-only quoted content. This is the reviewer's holistic assessment of the criterion, not a summary of annotations.  
-  4. **Annotations (N):** A list of specific, anchored notes the reviewer left on the OER. Each annotation displays its location (Chapter / Figure / page number), the reviewer's comment text, an icon indicating whether the reviewer tagged it as positive (⭐) or negative (⚠), and a "View annotation" link that opens the OER pane (Step 4).  
-  5. **Revision Log:** A single text area where the Author records any notes about her revisions, her thinking, or her reasoning. The placeholder reads "Leave any notes about your revisions or thoughts on this feedback…" The field is optional in all cases. The product does not provide a separate "won't address" path; if the Author chooses not to make a change, she may explain in the Revision Log.  
-  6. **Ask Coordinator:** A separate text area with a "Send" button. The Author can route a clarification question to the Coordinator (Mark) at any time. Once sent, the field shows the question, the date sent, and the status (Awaiting reply / Replied). When Mark responds, his reply appears inline and the Author can continue interacting with the criterion as normal.  
-  7. **Mark Resolved:** At the bottom of the criterion section, a single checkbox labeled "Mark resolved" sits right-aligned, separated from the content above by a horizontal rule. The Author toggles this when she has completed her revisions for this criterion in her external authoring tool. The checkbox is unchecked by default; the Author must explicitly mark it.
+  4. **To-Do List (Conditional):** If any annotations or free notes linked to this criterion are tagged Action Item or Quick Fix, a "To-Do" sub-section appears immediately below the Overall Comment. Each list item displays: a tag icon (✦ Action Item / ⚡ Quick Fix — visually distinct), the source comment text (read-only), a "View source" link (jumps to the inline annotation in OER context, or scrolls to the parent free note if the source is a general free note linked to this criterion), and a per-item checkbox the Author may use to track completion. Item check-off state is local-only progress tracking and does not gate the criterion's Mark Resolved state. General Feedback tagged items do not appear here — they remain in the Annotations list below. See C.20.  
+  5. **Annotations (N):** A list of specific, anchored notes the reviewer left on the OER. Each annotation displays its location (Chapter / Figure / page number), the reviewer's comment text, its Annotation Tag icon (General Feedback / Action Item / Quick Fix), and a "View annotation" link that opens the OER pane (Step 4). Items tagged Action Item or Quick Fix that appear in the To-Do List above also remain in this list for full context; visual treatment indicates the cross-reference.  
+  6. **Revision Log:** A single text area where the Author records any notes about her revisions, her thinking, or her reasoning. The placeholder reads "Leave any notes about your revisions or thoughts on this feedback…" The field is optional in all cases. The product does not provide a separate "won't address" path; if the Author chooses not to make a change, she may explain in the Revision Log.  
+  7. **Ask Coordinator:** A separate text area with a "Send" button. The Author can route a clarification question to the Coordinator (Mark) at any time. Once sent, the field shows the question, the date sent, and the status (Awaiting reply / Replied). When Mark responds, his reply appears inline and the Author can continue interacting with the criterion as normal.  
+  8. **Mark Resolved:** At the bottom of the criterion section, a single checkbox labeled "Mark resolved" sits right-aligned, separated from the content above by a horizontal rule. The Author toggles this when she has completed her revisions for this criterion in her external authoring tool. The checkbox is unchecked by default; the Author must explicitly mark it.
 
 
   The three Author-side inputs — Revision Log, Ask Coordinator, and Mark Resolved — are independent and can be used in any combination. The Author is never asked to declare an intent before acting (e.g., no "I will address / I won't address / I need clarification" radio choice).
@@ -555,7 +579,7 @@ Step 5: Exporting the Report
     * **Content:** Reviewer's comments (default on), Annotations (default on), My revision logs (default on), Questions to coordinator (default off).  
     * **Filter:** Optional filters mirroring the in-product filters (Only needs improvement / Only unresolved).  
     * **Format:** PDF (default) or Markdown.  
-    * **Filename:** Suggested default `{OER}_{Rubric}_Review_{Date}.{ext}`, editable.  
+    * **Filename:** Suggested default {OER}\_{Rubric}\_Review\_{Date}.{ext}, editable.  
   * The panel shows a live preview info line ("8 criteria, \~12 pages") and offers two actions: "Preview" (opens a preview tab) and "Download" (asynchronous generation; the Author is notified when the file is ready).  
   * The exported document mirrors the in-product reading structure: cover page (OER title, rubric, dates, overall outcome, current revision status), table of contents, one section per included criterion, and a summary final page with a Report ID. In MVP, the cover page lists "Reviewed by: 1 expert" without identity or role details.
 
@@ -584,49 +608,52 @@ Step 6: Final Submission
 | C.2 | As an author, I want to see a high-level summary of a rubric review before diving in, so that I am not overwhelmed by feedback. | **Rubric Review Entry Page:** A landing page per rubric review showing overall outcome (proficient / needs improvement / exceeds counts), a table-of-contents-style Contents list of all criteria with their ratings, and a primary CTA to begin reading. | P0 | Planned |
 | C.3 | As an author, I want all feedback presented in one structured reading interface so I am not switching between modes. | **Single Reading Interface:** All criteria are rendered as expanded accordion sections in canonical order (C1 → CN). The interface unifies what previous designs treated as separate Report and Revision Card surfaces. | P0 | Planned |
 | C.4 | As an author, I want to filter feedback by rating and by my response status. | **Filter Chips:** Two filter groups — Rating (Needs Improvement / Exceeds / Proficient) and Status (Unresolved / Resolved / Awaiting). Within a group: OR. Across groups: AND. A live counter shows "Showing X of N criteria." | P0 | Planned |
-| C.5 | As an author, I want to clearly distinguish between the reviewer's overall judgment of a criterion and their specific anchored comments. | **Two-Tier Reviewer Content:** Each criterion displays the Reviewer's Overall Comment as the primary holistic content, followed by an Annotations list showing specific anchored notes with location, comment, and positive/negative tag. The terms "evidence" and "evidence bank" are not used in the Author-facing interface. | P0 | Planned |
+| C.5 | As an author, I want to clearly distinguish between the reviewer's overall judgment of a criterion and their specific anchored comments. | **Two-Tier Reviewer Content:** Each criterion displays the Reviewer's Overall Comment as the primary holistic content, followed by (where applicable) a To-Do List of Action Item / Quick Fix tagged items and an Annotations list showing all anchored notes with location, comment, and Annotation Tag icon (General Feedback / Action Item / Quick Fix). The terms "evidence" and "evidence bank" are not used in the Author-facing interface. | P0 | Revised |
 | C.6 | As an author, I want to jump from a specific annotation back to its location in the OER. | **Bi-directional Annotation Viewer:** Clicking "View annotation" expands the OER pane (default 35% / 65% split with draggable splitter), auto-scrolls to the anchor, highlights the content, and shows the reviewer's comment as a margin note. Visual style follows academic reading conventions (light highlight \+ margin note), not review-tool aesthetics. | P0 | Planned |
 | C.7 | As an author, I want to know when an annotation refers to an older version of my OER. | **Version-Aware Banner:** When the Author has uploaded a revised version, the OER pane displays a non-blocking banner indicating the annotation is anchored to a previous version, with options to view the original version or dismiss the banner. | P0 | Planned |
 | C.8 | As an author, I want to record notes about my revisions in one place per criterion. | **Revision Log:** A single optional text area per criterion for the Author to record any notes about their revisions or thinking. No predefined action paths (e.g., no "I'll address / I won't address" radio choice). | P0 | Planned |
 | C.9 | As an author, I want to ask the coordinator for clarification on a specific piece of feedback. | **Ask Coordinator (Per-Criterion):** A text area \+ Send button on each criterion that routes a clarification question to the Coordinator. The field shows the question's status (Awaiting reply / Replied) and renders the Coordinator's reply inline when received. | P1 | Planned |
 | C.10 | As an author, I want a simple way to track which criteria I have already addressed in my revised OER. | **Mark Resolved Checkbox:** A single checkbox at the bottom of each Needs Improvement criterion section. Unchecked by default. Toggling does not require a justification or a log entry. | P0 | Planned |
 | C.11 | As an author, I want to download a copy of the review feedback for offline reading, printing, or sharing. | **Export Panel:** A right-side configuration panel offering Scope (full rubric / specific criteria), Content (reviewer comments, annotations, revision logs, coordinator questions), Filter (rating, status), and Format (PDF / Markdown). Includes Preview and Download actions; generation is asynchronous. | P0 | Planned |
-| C.12 | As an author, I want the exported file to be clearly named so I can find it later. | **Smart Filename Defaults:** Exports default to `{OER}_{Rubric}_Review_{Date}.{ext}`, with the option to customize before download. | P1 | Planned |
+| C.12 | As an author, I want the exported file to be clearly named so I can find it later. | **Smart Filename Defaults:** Exports default to {OER}\_{Rubric}\_Review\_{Date}.{ext}, with the option to customize before download. | P1 | Planned |
 | C.13 | As an author, I want the OER reading and annotation viewing space to feel consistent with the reviewer's workspace. | **Spatial Parity with Block B:** Block C uses the same three-pane layout language as Block B (left OER / center Console / right AI overlay), with collapsible side panes. Block C defaults to Revision Report full-screen; OER and AI panes expand on demand. | P1 | Planned |
-| C.14 | As an author, I want to ask the AI assistant for help understanding a specific piece of feedback. | **Per-Criterion AI Assistant (Conversational Mode):** Each criterion exposes a "💬 Ask AI" entry point that opens the AI overlay with the full criterion context (rubric definition, reviewer comment, annotations, author's log). MVP scope: question-and-answer about the criterion. | P1 | Planned |
+| C.14 | As an author, I want to ask the AI assistant for help understanding a specific piece of feedback. | **Per-Criterion AI Assistant (Conversational Mode):** Each criterion exposes a "💬 Ask AI" entry point that opens the AI overlay with the full criterion context (rubric definition, reviewer overall comment, all annotations and linked free notes for this criterion, the To-Do List items, the author's revision log). MVP scope: question-and-answer about the criterion. | P1 | Planned |
 | C.15 | As an author, I want help drafting a cover summary at submission time so I don't have to re-write what I already documented. | **AI Draft for Cover Note (Generative Mode):** On the Final Submission confirm view, the optional cover note offers a "✨ Draft with AI" action that generates a first-person summary based on the Author's revision logs and the criterion outcomes in this rubric review. The draft is labeled as AI-generated; the label disappears when the Author edits. The AI does not auto-generate revision logs themselves, to preserve their authenticity. | P1 | Planned |
 | C.16 | As an author, I want to submit my revised OER for verification once I've handled all the feedback. | **Per-Rubric Final Submission:** A full-page confirm view per rubric review containing: revised OER upload (optional), an auto-generated revisions summary, an optional cover note, and a clear next-steps explanation. The submit action is non-revocable in the MVP. | P0 | Planned |
 | C.17 | As an author, I want to be reminded that I cannot edit my submission after sending it. | **Pre-Submit Notice:** A clear inline notice on the confirm view stating that the submission cannot be edited once sent. Withdrawal flow reserved for a future iteration. | P1 | Planned |
 | C.18 | As an author, I want to look back at what I submitted, even after submission. | **View Submission:** After submission, the Dashboard card for this rubric review displays a "View submission" link that re-opens the submitted package (revised OER, revisions summary, cover note) in read-only mode. | P1 | Planned |
 | C.19 | As an author, I want my interface state to persist across sessions. | **State Persistence:** Per-user, per-rubric-review storage of accordion expand/collapse state, OER pane width, AI pane state, filter chip selections, scroll position, and all draft inputs (revision logs, ask-coordinator drafts, cover notes). | P0 | Planned |
+| C.20 | As an author, I want a scannable list of the specific things the reviewer thinks I should do for this criterion. | **Per-Criterion To-Do List:** Within each criterion section, an auto-aggregated list of annotations and free notes linked to this criterion that are tagged Action Item or Quick Fix. Items are visually distinguished by tag (Action Item vs Quick Fix). Each item displays the source comment text (read-only), a "View source" link to the inline annotation or general free note, and a per-item checkbox for the Author's local progress tracking. General Feedback tagged items do not appear in the To-Do List. Conditional rendering: the section is omitted entirely if no Action Item or Quick Fix items are linked to the criterion. | P0 | Planned |
+| C.21 | As an author, I want to see the reviewer's overarching observations that don't belong to any specific criterion. | **Reviewer's General Comments Section:** A sticky-collapsible card at the top of the Revision Report (immediately below the sticky header) displaying free notes from the Reviewer that have not been linked to any criterion. Each entry shows the comment text and its Annotation Tag icon. Default open if any unlinked free notes exist; hidden entirely if none. Spatial parity with the Block B Free Note Bank for dual Author \+ Reviewer users. | P0 | Planned |
+| C.22 | As an author, I want feedback that the reviewer marked as cross-cutting to appear in every relevant criterion section. | **Multi-Criterion Annotation Display:** If a single annotation or free note is linked to multiple criteria, it surfaces in the Annotations list (and the To-Do List, if tag-eligible) of every criterion it is linked to. Display includes a subtle indicator that this item is also referenced under other criteria. | P1 | Planned |
 
 4\. Technical Architecture Principles
 
-2. **Per-Rubric Data Scope:** All Block C data structures are keyed by `(oer_id, rubric_id)`. The Revision Report, Filter state, Export configuration, and Final Submission package are all rubric-scoped. The system never aggregates feedback across rubrics in the Author Console.  
+3. **Per-Rubric Data Scope:** All Block C data structures are keyed by (oer\_id, rubric\_id). The Revision Report, Filter state, Export configuration, and Final Submission package are all rubric-scoped. The system never aggregates feedback across rubrics in the Author Console.  
      
-3. **Two Reviewer Content Types:** Each criterion in the data model carries two distinct content fields, both populated by the Reviewer in Block B:  
+4. **Two Reviewer Content Types:** Each criterion in the data model carries two distinct content fields, both populated by the Reviewer in Block B:  
      
-   * `overall_comment` — the Reviewer's holistic, criterion-level assessment (not anchored to a location in the OER).  
-   * `annotations[]` — a list of anchored notes, each with `(anchor_coordinates, comment_text, polarity_tag)`.
+   * overall\_comment — the Reviewer's holistic, criterion-level assessment (not anchored to a location in the OER).  
+   * linked\_annotations\[\] and linked\_free\_notes\[\] — the lists of annotations and free notes linked to this criterion. Each annotation carries (anchor\_coordinates, comment\_text, annotation\_tag, criterion\_ids\[\]); each free note carries (comment\_text, annotation\_tag, criterion\_ids\[\]). The annotation\_tag field takes one of three values: general\_feedback (default), action\_item, or quick\_fix. The criterion\_ids\[\] array may be empty (unbound) or contain one or multiple criterion IDs (1:N linking).
 
    
 
-   Block C renders these as two visually distinct blocks. The previous design pattern of treating `overall_comment` as a "synthesis" of annotations is deprecated.
+   Block C renders these as distinct blocks: Overall Comment, To-Do List (filtered to action\_item \+ quick\_fix tagged items linked to the criterion), and a full Annotations list. The previous design pattern of treating overall\_comment as a "synthesis" of annotations is deprecated. The previously specified polarity\_tag field is removed as of v3.6 — see B.10 (Deprecated).
 
    
 
-4. **Read-Only Reviewer Content:** Reviewer comments and annotations are immutable from the Author's side, in line with the CC BY-ND feedback license. The Author adds an independent response layer (revision logs, mark-resolved status, coordinator questions, cover note) that is stored separately and never modifies the reviewer's content.  
+5. **Read-Only Reviewer Content:** Reviewer comments and annotations are immutable from the Author's side, in line with the CC BY-ND feedback license. The Author adds an independent response layer (revision logs, mark-resolved status, coordinator questions, cover note) that is stored separately and never modifies the reviewer's content.  
      
-5. **Version Awareness:** Annotations are stored with the OER version they were created against (`anchored_to_version`). When the Author uploads a revised version, the system continues to render annotations against the original version but warns the Author that locations may have shifted (Version-Aware Banner). The Coordinator's verification target is the most recent uploaded version unless the Author explicitly retains an older version.  
+6. **Version Awareness:** Annotations are stored with the OER version they were created against (anchored\_to\_version). When the Author uploads a revised version, the system continues to render annotations against the original version but warns the Author that locations may have shifted (Version-Aware Banner). The Coordinator's verification target is the most recent uploaded version unless the Author explicitly retains an older version.  
      
-6. **State Machine — Per Rubric Review:**  
+7. **State Machine — Per Rubric Review:**  
      
-   * `Submitted` → (Reviewer claims) → `Under Review` → (Reviewer completes, Coordinator releases) → `Feedback Available` → (Author submits) → `Awaiting Verification` → (Coordinator verifies) → `Certified` or → `Revision Requested Again` (back to Feedback Available)  
+   * Submitted → (Reviewer claims) → Under Review → (Reviewer completes, Coordinator releases) → Feedback Available → (Author submits) → Awaiting Verification → (Coordinator verifies) → Certified or → Revision Requested Again (back to Feedback Available)  
    * Each rubric review advances independently of others on the same OER.
 
    
 
-7. **AI Assistant — Two Modes:**  
+8. **AI Assistant — Two Modes:**  
      
    * **Conversational Mode (C.14):** Triggered from a criterion. Context \= single criterion (definition \+ reviewer content \+ author log).  
    * **Generative Mode (C.15):** Triggered from the cover note in Final Submission. Context \= full rubric review (all criteria \+ author logs \+ statuses). Output is labeled as AI-generated until the Author edits.  
@@ -634,9 +661,9 @@ Step 6: Final Submission
 
    
 
-8. **Asynchronous Export:** Export generation is offloaded to a background worker. The Author is notified in-product when the file is ready. Files are stored temporarily and downloadable via signed URL.  
+9. **Asynchronous Export:** Export generation is offloaded to a background worker. The Author is notified in-product when the file is ready. Files are stored temporarily and downloadable via signed URL.  
      
-9. **Public/Private Separation:** The future Validation Landing Page (see Block C — Verification & Publication section below) will display only the summary outcome and rubrics passed. Revision logs, coordinator questions, and cover notes remain strictly private between Author and Coordinator.
+10. **Public/Private Separation:** The future Validation Landing Page (see Block C — Verification & Publication section below) will display only the summary outcome and rubrics passed. Revision logs, coordinator questions, and cover notes remain strictly private between Author and Coordinator.
 
 5\. Out of Scope for MVP / Deferred Items
 
@@ -647,14 +674,14 @@ The following are explicitly out of scope for the April MVP and are tracked for 
 * **By Chapter View:** Requires structural metadata from Block A (OER chapter boundaries). Will be evaluated as a follow-on once Block A supports structural ingest.  
 * **HTML Export with Client-Side Filtering:** Deferred pending real user demand. PDF and Markdown cover the MVP use cases.  
 * **Withdraw Submission:** Pending client confirmation on operational impact.  
-* **Coordinator Send-Back Flow:** The data model and state machine reserve `Revision Requested Again` as a transition, but UI for Coordinator-initiated send-back is out of MVP scope.  
+* **Coordinator Send-Back Flow:** The data model and state machine reserve Revision Requested Again as a transition, but UI for Coordinator-initiated send-back is out of MVP scope.  
 * **Reviewer Identity Display:** MVP keeps reviewer identity fully anonymous on both the in-product report and the exported file. Future iterations may surface reviewer role (e.g., "Cross-institution Faculty" vs. "Industry Stakeholder") pending client policy decision.  
 * **Anchor-Level Author Response:** Author response is criterion-level only. Per-annotation author notes are deferred.
 
 6\. Dependencies on Other Blocks
 
-* **Block A** must transmit per-rubric review requests and OER metadata in the `(oer_id, rubric_id)` format used by Block C.  
-* **Block B** must populate both `overall_comment` and `annotations[]` as distinct fields per criterion (see B.20), and tag each annotation with a polarity (positive / negative). The Reviewer Console UI must be updated to make these two inputs visibly distinct.  
+* **Block A** must transmit per-rubric review requests and OER metadata in the (oer\_id, rubric\_id) format used by Block C.  
+* **Block B** must populate overall\_comment, annotations\[\], and free\_notes\[\] per rubric review (see B.20, B.21, B.22, B.23). Each annotation and free note must carry an Annotation Tag (general\_feedback / action\_item / quick\_fix) and a criterion\_ids\[\] array supporting 0, 1, or multiple criterion links. The Reviewer Console UI must make the Overall Comment / annotations / free notes inputs visibly distinct.  
 * **Block D (State Persistence)** must support the per-user, per-rubric-review state described in C.19.  
 * **AI Sub-system** must accept two scoped context windows: per-criterion (Conversational Mode) and per-rubric-review (Generative Mode for cover note).
 
@@ -685,7 +712,7 @@ Two additional principles are specific to Block C+:
 
 | ID | User Story | Feature / Specification | Mode | Priority | Status |
 | :---- | :---- | :---- | :---- | :---- | :---- |
-| A1 | As an author, I want to ask questions about a specific piece of feedback so I can understand what the reviewer means and what to do about it. | **Per-Criterion Conversational AI:** A "💬 Ask AI" entry point on each criterion. Clicking it opens the AI chatbox with the full criterion context pre-loaded (rubric definition, reviewer overall comment, all annotations, author's current revision log). The Author can ask anything about this criterion. AI does not evaluate the reviewer's judgment. | On-demand | P1 | Planned |
+| A1 | As an author, I want to ask questions about a specific piece of feedback so I can understand what the reviewer means and what to do about it. | **Per-Criterion Conversational AI:** A "💬 Ask AI" entry point on each criterion. Clicking it opens the AI chatbox with the full criterion context pre-loaded (rubric definition, reviewer overall comment, all annotations and linked free notes for this criterion, To-Do List items, author's current revision log). The Author can ask anything about this criterion. AI does not evaluate the reviewer's judgment. | On-demand | P1 | Planned |
 | A2 | As an author, I want help drafting my cover note at submission time so I don't have to re-summarize what I already wrote in my revision logs. | **Generative Cover Note Draft:** On the Final Submission confirm view, a "✨ Draft with AI" button produces a first-person summary based on the Author's revision logs and the rubric review outcomes. The draft is clearly labeled "AI-generated draft — edit freely." Once the Author edits any text, the label is removed. Regenerate and Clear actions are available. The AI cannot access content from other rubric reviews. | On-demand | P1 | Planned |
 | A3 | As an author, I want a gentle reminder if my revisions may have missed something the reviewer raised. | **Self-Check Nudge:** When the Author marks a criterion as resolved, the system optionally surfaces a suggestion if the revision log content appears to omit specific issues raised by the reviewer (e.g., the reviewer flagged three items, the log mentions one). Dismissible. Controllable via AI Preferences. | Nudge | P1 | Planned |
 
@@ -734,7 +761,7 @@ A responsive vertical splitting mechanism is implemented. As users adjust the分
 
 ### **4.3 Data Integrity**
 
-The "Evidence Bank" in the Reviewer Console is mapped in real-time to the OER annotation database. If an annotation is deleted, the system verifies and prompts if the associated rubric rating still has sufficient evidence.
+The "Evidence Bank" in the Reviewer Console is mapped in real-time to the OER annotation database and the Free Note Bank. If an annotation or free note linked to a rated criterion is deleted or unlinked, the system verifies whether the associated rubric rating still satisfies the linking requirement (at least one linked annotation or free note) and prompts if it does not.
 
 ## **5\. Storage & Data Persistence**
 

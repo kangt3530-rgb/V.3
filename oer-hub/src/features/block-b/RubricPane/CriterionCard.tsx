@@ -106,9 +106,11 @@ export function CriterionCard({
   const setExceedsText = useReviewStore((s) => s.setExceedsText);
   const getCriterionRating = useReviewStore((s) => s.getCriterionRating);
   const isCriterionAddressed = useReviewStore((s) => s.isCriterionAddressed);
+  const allFreeNotes = useReviewStore((s) => s.freeNotes);
 
   const ratingData = getCriterionRating(criterion.id);
-  const evidenceCount = annotations.length;
+  const linkedFreeNotes = allFreeNotes.filter((n) => n.criterionIds.includes(criterion.id));
+  const evidenceCount = annotations.length + linkedFreeNotes.length;
   const done = isCriterionAddressed(criterion.id);
 
   const voiceExceeds = useVoiceInput({
@@ -409,6 +411,17 @@ export function CriterionCard({
             })}
           </div>
 
+          {/* NI/Exceeds validation hint — shown when rating is active but no evidence linked */}
+          {(ratingData.needsImprovementActive || ratingData.exceedsActive) &&
+            evidenceCount === 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-sm">
+              <span className="material-symbols-outlined text-[14px] text-amber-600 flex-shrink-0">info</span>
+              <p className="text-body-sm text-amber-700">
+                Add at least one annotation or free note linked to this criterion.
+              </p>
+            </div>
+          )}
+
           {/* R6 coherence banner — full detail below buttons */}
           {nudgeMessage && !nudgeLoading && (
             <R6NudgeBanner message={nudgeMessage} onDismiss={dismissNudge} />
@@ -423,6 +436,7 @@ export function CriterionCard({
           >
             <EvidenceBank
               annotations={annotations}
+              freeNotes={linkedFreeNotes}
               activeAnnotationId={activeAnnotationId}
               onEvidenceClick={onEvidenceClick}
             />

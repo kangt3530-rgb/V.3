@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { IAggregatedCriterionFeedback, IAnnotation, OerType } from "../../api/types";
+import type { AnnotationTag, IAggregatedCriterionFeedback, IAnnotation, OerType } from "../../api/types";
 import { MockOERRenderer } from "../block-b/OERPane/MockOERRenderer";
+import { TAG_CONFIG } from "../block-b/annotationTagConfig";
 import { useRevisionStore } from "../../store/revisionStore";
 
 interface OERPreviewPaneProps {
@@ -291,16 +292,33 @@ export function OERPreviewPane({
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-700 leading-snug">
-              {primaryCriterionId(popoverAnn) ?? "Unlinked"}
-              {popoverCrit && (
-                <span className="font-normal text-gray-500">
-                  {" · "}{popoverCrit.criterionTitle.length > 42
-                    ? popoverCrit.criterionTitle.slice(0, 42) + "…"
-                    : popoverCrit.criterionTitle}
-                </span>
-              )}
-            </p>
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-semibold text-gray-700 leading-snug">
+                {primaryCriterionId(popoverAnn) ?? "Unlinked"}
+                {popoverCrit && (
+                  <span className="font-normal text-gray-500">
+                    {" · "}{popoverCrit.criterionTitle.length > 42
+                      ? popoverCrit.criterionTitle.slice(0, 42) + "…"
+                      : popoverCrit.criterionTitle}
+                  </span>
+                )}
+              </p>
+              {(() => {
+                const tag = popoverAnn.tag ?? "general_feedback" as AnnotationTag;
+                const { icon, cls, label } = TAG_CONFIG[tag];
+                return (
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`material-symbols-outlined text-[14px] flex-shrink-0 ${cls}`}
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      {icon}
+                    </span>
+                    <span className={`text-xs font-semibold ${cls}`}>{label}</span>
+                  </div>
+                );
+              })()}
+            </div>
             <button
               onClick={() => setPopover(null)}
               className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors mt-0.5"
@@ -351,6 +369,8 @@ export function OERPreviewPane({
         if (!paneRect) return null;
         const ann = annotations.find((a) => a.id === tooltip.id);
         const crit = criteria.find((c) => c.criterionId === (ann ? primaryCriterionId(ann) : undefined));
+        const tag = ann?.tag ?? "general_feedback" as AnnotationTag;
+        const tagLabel = TAG_CONFIG[tag].label;
         const tx = tooltip.x - paneRect.left + 12;
         const ty = tooltip.y - paneRect.top - 8;
         return (
@@ -358,7 +378,7 @@ export function OERPreviewPane({
             className="absolute z-50 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow"
             style={{ left: Math.min(tx, paneRect.width - 160), top: Math.max(8, ty) }}
           >
-            {ann ? primaryCriterionId(ann) ?? "Unlinked" : ""} · {crit?.criterionTitle?.slice(0, 40)}
+            {ann ? primaryCriterionId(ann) ?? "Unlinked" : ""} · {crit?.criterionTitle?.slice(0, 40)} · {tagLabel}
           </div>
         );
       })()}

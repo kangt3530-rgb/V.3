@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { IRubricTemplate, IAnnotation } from "../../../api/types";
 import { useReviewStore } from "../../../store/reviewStore";
 import { CriterionCard } from "./CriterionCard";
+import { FreeNoteBank } from "./FreeNoteBank";
 import { Button } from "../../../components/ui/Button";
 
 interface RubricPanelProps {
@@ -27,12 +28,24 @@ export function RubricPanel({
   submitLabel,
   criterionFlaggedFields,
 }: RubricPanelProps) {
-  const getAnnotationsForCriterion = useReviewStore((s) => s.getAnnotationsForCriterion);
+  const allAnnotations             = useReviewStore((s) => s.annotations);
   const isCriterionAddressed       = useReviewStore((s) => s.isCriterionAddressed);
   const isReadyToSubmit            = useReviewStore((s) => s.isReadyToSubmit);
   const persistSessionNow          = useReviewStore((s) => s.persistSessionNow);
   const activeRubricTerms          = useReviewStore((s) => s.activeRubricTerms);
   const dispatchLookup             = useReviewStore((s) => s.dispatchLookup);
+
+  function getAnnotationsForCriterion(criterionId: string) {
+    return allAnnotations.filter((a) => {
+      // New format: criterionIds array
+      if (Array.isArray(a.criterionIds) && a.criterionIds.length > 0) {
+        return a.criterionIds.includes(criterionId);
+      }
+      // Legacy format: single criterionId string
+      const legacyId = (a as unknown as { criterionId?: string }).criterionId;
+      return legacyId === criterionId;
+    });
+  }
 
   const panelRef    = useRef<HTMLDivElement>(null);
   const listRef     = useRef<HTMLDivElement>(null);
@@ -120,6 +133,9 @@ export function RubricPanel({
           />
         </div>
       </div>
+
+      {/* Free Note Bank — sticky above scrollable criteria list */}
+      <FreeNoteBank rubricTemplate={template} onAnnotationClick={onEvidenceClick} />
 
       {/* Scrollable criteria list */}
       <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
