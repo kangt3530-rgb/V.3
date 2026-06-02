@@ -17,6 +17,7 @@ export function useAutoSave() {
   // Individual primitive / stable-reference selectors — no object creation.
   const taskId       = useReviewStore((s) => s.taskId);
   const annotations  = useReviewStore((s) => s.annotations);   // stable ref until mutated
+  const freeNotes    = useReviewStore((s) => s.freeNotes);
   const ratings      = useReviewStore((s) => s.ratings);        // stable ref until mutated
   const splitRatio   = useReviewStore((s) => s.splitRatio);
   const status       = useReviewStore((s) => s.status);
@@ -44,6 +45,7 @@ export function useAutoSave() {
         oerSource:        s.oerSource,
         rubricTemplateId: s.rubricTemplateId,
         annotations:      s.annotations,
+        freeNotes:        s.freeNotes,
         ratings:          s.ratings,
         splitRatio:       s.splitRatio,
         oerScrollY:       s.oerScrollY,
@@ -59,5 +61,5 @@ export function useAutoSave() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [taskId, annotations, ratings, splitRatio, status, chatHistory, aiPaneOpen, activeNudges, setLastSaved]);
+  }, [taskId, annotations, freeNotes, ratings, splitRatio, status, chatHistory, aiPaneOpen, activeNudges, setLastSaved]);
 }

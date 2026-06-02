@@ -20,7 +20,7 @@ export function computeR13Findings(
       exceedsText: r.exceedsText,
       doesNotMeetText: r.needsImprovementText,
       annotationComments: annotations
-        .filter((a) => a.criterionId === c.id)
+        .filter((a) => (a.criterionIds ?? []).includes(c.id))
         .map((a) => a.comment),
       exceedsActive: r.exceedsActive,
       doesNotMeetActive: r.needsImprovementActive,

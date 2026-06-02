@@ -36,8 +36,10 @@ export function useR8GapCheck(): (template: IRubricTemplate) => Promise<boolean>
       // Build annotation count map
       const annotationCountByCriterion: Record<string, number> = {};
       for (const a of s.annotations) {
-        annotationCountByCriterion[a.criterionId] =
-          (annotationCountByCriterion[a.criterionId] ?? 0) + 1;
+        for (const id of a.criterionIds ?? []) {
+          annotationCountByCriterion[id] =
+            (annotationCountByCriterion[id] ?? 0) + 1;
+        }
       }
 
       const gapSignals = computeGapSignals({

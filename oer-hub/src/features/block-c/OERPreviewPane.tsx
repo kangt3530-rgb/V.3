@@ -15,6 +15,10 @@ interface OERPreviewPaneProps {
 
 type Rect = { top: number; left: number; width: number; height: number };
 
+function primaryCriterionId(ann: IAnnotation): string | undefined {
+  return ann.criterionIds?.[0];
+}
+
 interface PopoverState {
   annotationId: string;
   top: number;
@@ -226,7 +230,7 @@ export function OERPreviewPane({
   // Popover annotation + criterion data
   const popoverAnn = popover ? annotations.find((a) => a.id === popover.annotationId) : null;
   const popoverCrit = popoverAnn
-    ? criteria.find((c) => c.criterionId === popoverAnn.criterionId)
+    ? criteria.find((c) => c.criterionId === primaryCriterionId(popoverAnn))
     : null;
 
   return (
@@ -288,7 +292,7 @@ export function OERPreviewPane({
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <p className="text-sm font-semibold text-gray-700 leading-snug">
-              {popoverAnn.criterionId}
+              {primaryCriterionId(popoverAnn) ?? "Unlinked"}
               {popoverCrit && (
                 <span className="font-normal text-gray-500">
                   {" · "}{popoverCrit.criterionTitle.length > 42
@@ -346,7 +350,7 @@ export function OERPreviewPane({
         const paneRect = paneRef.current?.getBoundingClientRect();
         if (!paneRect) return null;
         const ann = annotations.find((a) => a.id === tooltip.id);
-        const crit = criteria.find((c) => c.criterionId === ann?.criterionId);
+        const crit = criteria.find((c) => c.criterionId === (ann ? primaryCriterionId(ann) : undefined));
         const tx = tooltip.x - paneRect.left + 12;
         const ty = tooltip.y - paneRect.top - 8;
         return (
@@ -354,7 +358,7 @@ export function OERPreviewPane({
             className="absolute z-50 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow"
             style={{ left: Math.min(tx, paneRect.width - 160), top: Math.max(8, ty) }}
           >
-            {ann?.criterionId} · {crit?.criterionTitle?.slice(0, 40)}
+            {ann ? primaryCriterionId(ann) ?? "Unlinked" : ""} · {crit?.criterionTitle?.slice(0, 40)}
           </div>
         );
       })()}

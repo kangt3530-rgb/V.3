@@ -45,7 +45,9 @@ export function detectGaps(
 
   const annotationCounts: Record<string, number> = {};
   for (const a of annotations) {
-    annotationCounts[a.criterionId] = (annotationCounts[a.criterionId] ?? 0) + 1;
+    for (const id of a.criterionIds ?? []) {
+      annotationCounts[id] = (annotationCounts[id] ?? 0) + 1;
+    }
   }
 
   for (const c of criteria) {

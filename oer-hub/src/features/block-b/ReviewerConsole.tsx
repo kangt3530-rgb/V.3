@@ -127,6 +127,7 @@ export function ReviewerConsole() {
       oerSource:        s.oerSource,
       rubricTemplateId: s.rubricTemplateId,
       annotations:      s.annotations,
+      freeNotes:        s.freeNotes,
       ratings:          s.ratings,
       splitRatio:       s.splitRatio,
       oerScrollY:       s.oerScrollY,
