@@ -61,11 +61,9 @@ function criterionIdsFromLegacy(raw: unknown): string[] {
 function migrateAnnotation(a: unknown): IAnnotation {
   const x = a as Partial<IAnnotation> & { criterionId?: string; evidencePolarity?: unknown };
   const criterionIds = criterionIdsFromLegacy(x);
-  const tag: AnnotationTag | undefined =
-    x.tag ??
-    (x.polarity === "positive" || x.polarity === "negative"
-      ? "general_feedback"
-      : undefined);
+  const rawTag = (x.tag as string | null | undefined) ?? null;
+  const tag: AnnotationTag | null =
+    rawTag === "action_item" ? "action_item" : rawTag === "quick_fix" ? "quick_fix" : null;
 
   return {
     id: x.id ?? "",
@@ -85,7 +83,7 @@ function migrateFreeNote(n: unknown): IFreeNote {
     id: x.id ?? "",
     taskId: x.taskId ?? "",
     text: x.text ?? "",
-    tag: x.tag ?? "general_feedback",
+    tag: x.tag === "action_item" ? "action_item" : x.tag === "quick_fix" ? "quick_fix" : null,
     criterionIds: criterionIdsFromLegacy(x),
     createdAt: x.createdAt ?? new Date().toISOString(),
   };

@@ -57,8 +57,9 @@ export function EvidenceBank({
   );
 }
 
-function TagIcon({ tag }: { tag: AnnotationTag | undefined }) {
-  const cfg = TAG_CONFIG[tag ?? "general_feedback"];
+function TagIcon({ tag }: { tag: AnnotationTag | null | undefined }) {
+  if (!tag) return null;
+  const cfg = TAG_CONFIG[tag];
   return (
     <span
       className={`material-symbols-outlined text-[13px] flex-shrink-0 mt-0.5 ${cfg.cls}`}
@@ -107,8 +108,8 @@ function AnnotationRow({
           <p className="text-body-sm text-on-surface-variant line-clamp-2">{annotation.comment}</p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {/* Tag label */}
-            {(() => {
-              const cfg = TAG_CONFIG[annotation.tag ?? "general_feedback"];
+            {annotation.tag && (() => {
+              const cfg = TAG_CONFIG[annotation.tag];
               return (
                 <span className={`flex items-center gap-0.5 text-[10px] font-label font-semibold ${cfg.cls}`}>
                   <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>{cfg.icon}</span>

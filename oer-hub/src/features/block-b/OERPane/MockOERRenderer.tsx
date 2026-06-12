@@ -449,8 +449,8 @@ function AnnotationActionToolbar({
       </div>
       {/* Body: tag + comment */}
       <div className="px-3 pt-2 pb-1 space-y-1.5">
-        {(() => {
-          const cfg = TAG_CONFIG[annotation.tag ?? "general_feedback"];
+        {annotation.tag && (() => {
+          const cfg = TAG_CONFIG[annotation.tag];
           return (
             <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border border-current/20 text-[10px] font-label font-semibold ${cfg.cls}`}>
               <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>{cfg.icon}</span>

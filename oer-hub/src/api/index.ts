@@ -35,6 +35,8 @@ export {
   getOersPendingVerification,
   getCriterionResponses,
   upsertCriterionResponse,
+  getItemResponses,
+  upsertItemResponse,
   submitRevisionPackage,
 } from "./blockC";
 

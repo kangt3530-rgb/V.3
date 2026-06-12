@@ -36,10 +36,6 @@ interface RevisionStoreState {
   generalCommentsCollapsed: boolean;
   toggleGeneralComments: () => void;
 
-  // Per-item To-Do check-off state, keyed by annotation/freeNote id
-  todoCheckedItems: Record<string, boolean>;
-  toggleTodoItem: (itemId: string) => void;
-
   // Actions
   setContext: (oerId: string, rubricId: RubricTemplateId) => void;
   toggleRatingFilter: (rating: CriterionRatingSummary) => void;
@@ -76,10 +72,19 @@ export const useRevisionStore = create<RevisionStoreState>()(
       reportScrollPending: false,
       draftResponses: {},
       generalCommentsCollapsed: false,
-      todoCheckedItems: {},
 
       setContext: (oerId, rubricId) => {
-        set({ currentOerId: oerId, currentRubricId: rubricId });
+        const { currentOerId, currentRubricId } = get();
+        const contextChanged = oerId !== currentOerId || rubricId !== currentRubricId;
+        set({
+          currentOerId: oerId,
+          currentRubricId: rubricId,
+          ...(contextChanged && {
+            activeRatingFilters: [],
+            activeStatusFilters: [],
+            collapsedCriteria: [],
+          }),
+        });
       },
 
       toggleRatingFilter: (rating) => {
@@ -174,10 +179,6 @@ export const useRevisionStore = create<RevisionStoreState>()(
         set((s) => ({ generalCommentsCollapsed: !s.generalCommentsCollapsed }));
       },
 
-      toggleTodoItem: (itemId) => {
-        const { todoCheckedItems } = get();
-        set({ todoCheckedItems: { ...todoCheckedItems, [itemId]: !todoCheckedItems[itemId] } });
-      },
     }),
     {
       name: "oer-hub:block-c:revision-store",

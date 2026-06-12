@@ -22,7 +22,7 @@ interface AnnotationPopoverProps {
 const POPOVER_W = 360;
 const POPOVER_H = 340;
 
-const TAG_ORDER: AnnotationTag[] = ["general_feedback", "action_item", "quick_fix"];
+const TAG_ORDER: AnnotationTag[] = ["action_item", "quick_fix"];
 
 export function AnnotationPopover({
   containerRef,
@@ -44,7 +44,7 @@ export function AnnotationPopover({
 
   const isEditMode = !!editAnnotation;
 
-  const [tag, setTag]                   = useState<AnnotationTag>(editAnnotation?.tag ?? "general_feedback");
+  const [tag, setTag]                   = useState<AnnotationTag | null>(editAnnotation?.tag ?? null);
   const [criterionIds, setCriterionIds] = useState<string[]>(editAnnotation?.criterionIds ?? []);
   const [comment, setComment]           = useState(editAnnotation?.comment ?? "");
   const [error, setError]               = useState("");

@@ -3,7 +3,7 @@ import type { IRubricTemplate, IAnnotation, AnnotationTag } from "../../../api/t
 import { useReviewStore } from "../../../store/reviewStore";
 import { TAG_CONFIG } from "../annotationTagConfig";
 
-const TAG_ORDER: AnnotationTag[] = ["general_feedback", "action_item", "quick_fix"];
+const TAG_ORDER: AnnotationTag[] = ["action_item", "quick_fix"];
 
 /** Handles both new `criterionIds: string[]` and legacy `criterionId: string` shapes. */
 function isAnnotationLinked(a: IAnnotation): boolean {
@@ -39,7 +39,7 @@ export function FreeNoteBank({ rubricTemplate, onAnnotationClick }: FreeNoteBank
       id:           `fn-${Date.now()}`,
       taskId,
       text:         "",
-      tag:          "general_feedback",
+      tag:          null,
       criterionIds: [],
       createdAt:    new Date().toISOString(),
     });
@@ -191,13 +191,13 @@ function UnlinkedAnnotationCard({
   rubricTemplate: IRubricTemplate;
   onLink:         (criterionIds: string[]) => void;
   onDelete:       () => void;
-  onTagChange:    (tag: AnnotationTag) => void;
+  onTagChange:    (tag: AnnotationTag | null) => void;
   onJumpTo?:      () => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
-  const tag = annotation.tag ?? "general_feedback";
-  const cfg = TAG_CONFIG[tag];
+  const tag = annotation.tag;
+  const cfg = tag ? TAG_CONFIG[tag] : null;
 
   const locationLabel = annotation.anchor.page
     ? `p.${annotation.anchor.page}`
@@ -207,13 +207,15 @@ function UnlinkedAnnotationCard({
     <div className="bg-surface rounded-sm border border-outline-variant/20 p-3 space-y-2 group/card">
       {/* Content row */}
       <div className="flex items-start gap-2">
-        <span
-          className={`material-symbols-outlined text-[13px] flex-shrink-0 mt-0.5 ${cfg.cls}`}
-          style={{ fontVariationSettings: "'FILL' 1" }}
-          title={cfg.label}
-        >
-          {cfg.icon}
-        </span>
+        {cfg && (
+          <span
+            className={`material-symbols-outlined text-[13px] flex-shrink-0 mt-0.5 ${cfg.cls}`}
+            style={{ fontVariationSettings: "'FILL' 1" }}
+            title={cfg.label}
+          >
+            {cfg.icon}
+          </span>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-body-sm text-on-surface font-medium line-clamp-2 leading-snug">
             <span className="text-secondary font-headline italic">"</span>
@@ -281,7 +283,7 @@ function UnlinkedAnnotationCard({
               <button
                 key={t}
                 type="button"
-                onClick={() => onTagChange(t)}
+                onClick={() => onTagChange(tag === t ? null : t)}
                 title={tcfg.label}
                 className={[
                   "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[10px] font-label font-semibold transition-all",
@@ -332,26 +334,28 @@ function FreeNoteCard({
   onRemove,
 }: {
   text:          string;
-  tag:           AnnotationTag;
+  tag:           AnnotationTag | null;
   criterionIds:  string[];
   rubricTemplate: IRubricTemplate;
-  onUpdate: (partial: Partial<{ text: string; tag: AnnotationTag; criterionIds: string[] }>) => void;
+  onUpdate: (partial: Partial<{ text: string; tag: AnnotationTag | null; criterionIds: string[] }>) => void;
   onRemove: () => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const cfg = TAG_CONFIG[tag];
+  const cfg = tag ? TAG_CONFIG[tag] : null;
 
   return (
     <div className="bg-surface rounded-sm border border-outline-variant/20 p-3 space-y-2">
       {/* Text + delete */}
       <div className="flex items-start gap-2">
-        <span
-          className={`material-symbols-outlined text-[13px] flex-shrink-0 mt-0.5 ${cfg.cls}`}
-          style={{ fontVariationSettings: "'FILL' 1" }}
-          title={cfg.label}
-        >
-          {cfg.icon}
-        </span>
+        {cfg && (
+          <span
+            className={`material-symbols-outlined text-[13px] flex-shrink-0 mt-0.5 ${cfg.cls}`}
+            style={{ fontVariationSettings: "'FILL' 1" }}
+            title={cfg.label}
+          >
+            {cfg.icon}
+          </span>
+        )}
         <textarea
           value={text}
           onChange={(e) => onUpdate({ text: e.target.value })}
@@ -415,7 +419,7 @@ function FreeNoteCard({
               <button
                 key={t}
                 type="button"
-                onClick={() => onUpdate({ tag: t })}
+                onClick={() => onUpdate({ tag: tag === t ? null : t })}
                 title={tcfg.label}
                 className={[
                   "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border text-[10px] font-label font-semibold transition-all",

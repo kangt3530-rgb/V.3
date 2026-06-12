@@ -65,7 +65,7 @@ export interface ITask {
   submittedAt?: string;
 }
 
-export type AnnotationTag = "general_feedback" | "action_item" | "quick_fix";
+export type AnnotationTag = "action_item" | "quick_fix";
 
 export interface AnnotationAnchor {
   type: "pdf" | "web";
@@ -86,7 +86,7 @@ export interface IAnnotation {
   criterionIds: string[];
   anchor: AnnotationAnchor;
   comment: string;
-  tag?: AnnotationTag;
+  tag: AnnotationTag | null;
   /** @deprecated Use tag instead. Kept for Block C backwards-compat. */
   polarity?: "positive" | "negative";
   createdAt: string;
@@ -96,7 +96,7 @@ export interface IFreeNote {
   id: string;
   taskId: string;
   text: string;
-  tag: AnnotationTag;
+  tag: AnnotationTag | null;
   criterionIds: string[];
   createdAt: string;
 }
@@ -225,6 +225,17 @@ export interface IDigitalStamp {
 
 export type RevisionStatus = "unresolved" | "resolved" | "awaiting_clarification";
 
+export type ItemStatus = "addressed" | "later" | "wont_address";
+
+export interface IAuthorItemResponse {
+  /** annotation id or freeNote id */
+  annotationId: string;
+  oerId: string;
+  rubricTemplateId: RubricTemplateId;
+  itemStatus: ItemStatus | null;
+  revisionNote?: string;
+}
+
 export interface ICoordinatorQuestion {
   id: string;
   questionText: string;
@@ -241,6 +252,7 @@ export interface ICriterionResponse {
   coordinatorQuestion: ICoordinatorQuestion | null;
   status: RevisionStatus;
   resolvedAt: string | null;
+  markResolvedAutoFilled?: boolean;
 }
 
 export interface IRevisionSubmission {

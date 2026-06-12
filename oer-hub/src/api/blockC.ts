@@ -18,6 +18,7 @@ import type {
   IRubricTemplate,
   RubricTemplateId,
   CriterionRatingSummary,
+  IAuthorItemResponse,
 } from "./types";
 import { MOCK_OERS } from "./mock/oers";
 import { MOCK_ACTIVE_TASKS, MOCK_POOL_TASKS } from "./mock/tasks";
@@ -330,7 +331,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-1c",
         taskId: "task-001",
         criterionIds: ["C1"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "The paragraph introduces both wave and particle concepts in the same sentence without visual separation. DOM reading order may not match intended instructional flow for AT users.",
         createdAt: "2026-03-22T11:04:00Z",
@@ -345,7 +346,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-2",
         taskId: "task-001",
         criterionIds: ["C2"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "Figure 3.1 caption text uses a reduced-contrast gray on the beige background (~3.1:1). Darken the caption to meet WCAG AA (4.5:1 for small text).",
         createdAt: "2026-03-22T11:05:00Z",
@@ -388,7 +389,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-3c",
         taskId: "task-001",
         criterionIds: ["C3"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "The \"Key Insight\" callout uses a decorative border and color cue without an accessible role or label. Screen readers will read it as a plain paragraph with no structural context.",
         createdAt: "2026-03-22T11:14:00Z",
@@ -433,7 +434,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-6",
         taskId: "task-001",
         criterionIds: ["C6"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "The Key Terms section uses a <dl>/<dt>/<dd> structure — exemplary semantic markup for a glossary. Screen readers announce each term/definition pair correctly.",
         createdAt: "2026-03-22T11:30:00Z",
@@ -447,7 +448,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-6b",
         taskId: "task-001",
         criterionIds: ["C6"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "\"Wave function collapse\" definition pairs concise label with an accurate, self-contained description — no external reference needed. Excellent for AT users reading out of context.",
         createdAt: "2026-03-22T11:31:00Z",
@@ -461,7 +462,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "ann-demo-6c",
         taskId: "task-001",
         criterionIds: ["C6"],
-        tag: "general_feedback",
+        tag: null,
         comment:
           "\"Interference pattern\" definition avoids jargon and provides a complete self-contained explanation — strong plain-language writing that benefits all learners.",
         createdAt: "2026-03-22T11:32:00Z",
@@ -493,7 +494,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "fn-demo-1",
         taskId: "task-001",
         text: "Overall this resource lacks a coherent accessibility strategy. Individual fixes will help, but a structural review against WCAG 2.1 AA is recommended before the next revision cycle.",
-        tag: "general_feedback",
+        tag: null,
         criterionIds: [],
         createdAt: "2026-03-22T12:00:00Z",
       },
@@ -519,7 +520,7 @@ function demoSessionForOer001(): IReviewSession {
         id: "fn-demo-4",
         taskId: "task-001",
         text: "The keyboard interaction issues in C5 are partly offset by the excellent microcopy. If you address the focus-trap and color-only errors, this criterion is likely to reach Exceeds.",
-        tag: "general_feedback",
+        tag: null,
         criterionIds: ["C5"],
         createdAt: "2026-03-22T12:15:00Z",
       },
@@ -705,6 +706,30 @@ export async function upsertCriterionResponse(
   const key = responsesKey(response.oerId, response.rubricTemplateId);
   const existing = readJson<ICriterionResponse[]>(key, []);
   const idx = existing.findIndex((r) => r.criterionId === response.criterionId);
+  const next =
+    idx >= 0
+      ? existing.map((r, i) => (i === idx ? response : r))
+      : [...existing, response];
+  writeJson(key, next);
+  return response;
+}
+
+const itemResponsesKey = (oerId: string, rubricTemplateId: RubricTemplateId) =>
+  `oer-hub:block-c:item-responses:${oerId}:${rubricTemplateId}`;
+
+export async function getItemResponses(
+  oerId: string,
+  rubricTemplateId: RubricTemplateId
+): Promise<IAuthorItemResponse[]> {
+  return readJson<IAuthorItemResponse[]>(itemResponsesKey(oerId, rubricTemplateId), []);
+}
+
+export async function upsertItemResponse(
+  response: IAuthorItemResponse
+): Promise<IAuthorItemResponse> {
+  const key = itemResponsesKey(response.oerId, response.rubricTemplateId);
+  const existing = readJson<IAuthorItemResponse[]>(key, []);
+  const idx = existing.findIndex((r) => r.annotationId === response.annotationId);
   const next =
     idx >= 0
       ? existing.map((r, i) => (i === idx ? response : r))

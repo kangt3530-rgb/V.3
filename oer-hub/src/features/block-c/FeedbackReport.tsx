@@ -3,13 +3,14 @@ import { Link, useParams } from "react-router-dom";
 import type {
   IAggregatedCriterionFeedback,
   IAnnotation,
+  IAuthorItemResponse,
   ICriterionResponse,
   IPerRubricReport,
   RubricTemplateId,
   RevisionStatus,
   CriterionRatingSummary,
 } from "../../api/types";
-import { getPerRubricReport, getCriterionResponses } from "../../api";
+import { getPerRubricReport, getCriterionResponses, getItemResponses, upsertItemResponse } from "../../api";
 import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
@@ -19,6 +20,7 @@ import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
 import { OERPreviewPane } from "./OERPreviewPane";
 import { ExportPanel } from "./ExportPanel";
 import { AIChatbox } from "../../components/ai/AIChatbox";
+import { ActionListView } from "./ActionListView";
 
 // ── Inline outcome dots for the compact header row ────────────────────────────
 
@@ -46,6 +48,8 @@ function StickyHeader({
   isReadOnly,
   submittedAt,
   onResetDemo,
+  activeView,
+  onViewChange,
 }: {
   report: IPerRubricReport;
   responses: ICriterionResponse[];
@@ -54,6 +58,8 @@ function StickyHeader({
   isReadOnly: boolean;
   submittedAt: string | null;
   onResetDemo?: () => void;
+  activeView: "report" | "action_list";
+  onViewChange: (v: "report" | "action_list") => void;
 }) {
   const criteria = report.criteria;
   const total = criteria.length;
@@ -105,6 +111,24 @@ function StickyHeader({
         ) : null}
 
         <div className="ml-auto shrink-0 flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center rounded-full border border-outline-variant/30 overflow-hidden text-[11px] font-semibold">
+            {(["report", "action_list"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onViewChange(v)}
+                className={[
+                  "px-2.5 py-0.5 transition-colors",
+                  activeView === v
+                    ? "bg-primary text-white"
+                    : "text-on-surface-variant/60 hover:bg-surface-container",
+                ].join(" ")}
+              >
+                {v === "report" ? "Report" : "Action list"}
+              </button>
+            ))}
+          </div>
           {import.meta.env.DEV && onResetDemo && (
             <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               [Reset demo]
@@ -127,9 +151,12 @@ export default function FeedbackReport() {
 
   const [report, setReport] = useState<IPerRubricReport | null>(null);
   const [responses, setResponses] = useState<ICriterionResponse[]>([]);
+  const [itemResponses, setItemResponses] = useState<IAuthorItemResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
   const [aiButtonPulsing, setAiButtonPulsing] = useState(true);
+  const [activeView, setActiveView] = useState<"report" | "action_list">("report");
 
   useEffect(() => {
     const t = setTimeout(() => setAiButtonPulsing(false), 3000);
@@ -197,9 +224,14 @@ export default function FeedbackReport() {
     Promise.all([
       getPerRubricReport(oerId, rubricId as RubricTemplateId),
       getCriterionResponses(oerId, rubricId as RubricTemplateId),
-    ]).then(([r, rsp]) => {
+      getItemResponses(oerId, rubricId as RubricTemplateId),
+    ]).then(([r, rsp, ir]) => {
       setReport(r);
       setResponses(rsp);
+      setItemResponses(ir);
+      setLoading(false);
+    }).catch(() => {
+      setError(true);
       setLoading(false);
     });
   }, [oerId, rubricId]);
@@ -320,10 +352,26 @@ export default function FeedbackReport() {
     });
   }
 
+  function handleItemResponseSaved(saved: IAuthorItemResponse) {
+    upsertItemResponse(saved);
+    setItemResponses((prev) => {
+      const idx = prev.findIndex((r) => r.annotationId === saved.annotationId);
+      return idx >= 0 ? prev.map((r, i) => (i === idx ? saved : r)) : [...prev, saved];
+    });
+  }
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center pt-16">
         <p className="text-on-surface-variant animate-pulse">Loading feedback…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex items-center justify-center pt-16">
+        <p className="text-on-surface-variant">Could not load this review. Try refreshing the page.</p>
       </div>
     );
   }
@@ -405,10 +453,32 @@ export default function FeedbackReport() {
           isReadOnly={isReadOnly ?? false}
           submittedAt={submittedAt}
           onResetDemo={handleResetDemo}
+          activeView={activeView}
+          onViewChange={setActiveView}
         />
+        {activeView === "action_list" ? (
+          <ActionListView
+            report={report}
+            itemResponses={itemResponses}
+            onItemResponseSaved={handleItemResponseSaved}
+            onOpenInReport={(criterionId, annotationId) => {
+              setActiveView("report");
+              if (collapsedCriteria.includes(criterionId)) toggleCriterionCollapse(criterionId);
+              setTimeout(() => {
+                document.getElementById(`annotation-${annotationId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }, 150);
+            }}
+          />
+        ) : (
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="max-w-5xl mx-auto space-y-4">
-            <ReviewerGeneralComments freeNotes={report.freeNotes} />
+            <ReviewerGeneralComments
+              freeNotes={report.freeNotes}
+              oerId={report.oer.id}
+              rubricTemplateId={report.rubricTemplateId}
+              itemResponses={itemResponses}
+              onItemResponseSaved={handleItemResponseSaved}
+            />
             {visibleCriteria.map((c) => (
               <CriterionSection
                 key={c.criterionId}
@@ -420,6 +490,8 @@ export default function FeedbackReport() {
                 onToggleCollapse={() => toggleCriterionCollapse(c.criterionId)}
                 onViewAnnotation={(id) => openOerPane(id)}
                 onResponseSaved={handleResponseSaved}
+                itemResponses={itemResponses}
+                onItemResponseSaved={handleItemResponseSaved}
                 isReadOnly={isReadOnly ?? false}
               />
             ))}
@@ -455,6 +527,7 @@ export default function FeedbackReport() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* AI drag handle */}

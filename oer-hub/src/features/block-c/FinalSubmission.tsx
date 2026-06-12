@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { ICriterionResponse, IRevisionSubmission, RubricTemplateId } from "../../api/types";
-import { getCriterionResponses, getPerRubricReport, submitRevisionPackage } from "../../api";
+import type { IAuthorItemResponse, ICriterionResponse, IRevisionSubmission, ItemStatus, RubricTemplateId } from "../../api/types";
+import { getCriterionResponses, getItemResponses, getPerRubricReport, submitRevisionPackage } from "../../api";
+import { TAG_CONFIG } from "../block-b/annotationTagConfig";
 import { Button } from "../../components/ui/Button";
 import { RatingPill } from "./RatingPill";
 
@@ -22,6 +23,7 @@ export default function FinalSubmission() {
 
   const [report, setReport] = useState<Awaited<ReturnType<typeof getPerRubricReport>>>(null);
   const [responses, setResponses] = useState<ICriterionResponse[]>([]);
+  const [itemResponses, setItemResponses] = useState<IAuthorItemResponse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [revisedOerUrl, setRevisedOerUrl] = useState("");
@@ -38,9 +40,11 @@ export default function FinalSubmission() {
     Promise.all([
       getPerRubricReport(oerId, rubricId as RubricTemplateId),
       getCriterionResponses(oerId, rubricId as RubricTemplateId),
-    ]).then(([r, rsp]) => {
+      getItemResponses(oerId, rubricId as RubricTemplateId),
+    ]).then(([r, rsp, ir]) => {
       setReport(r);
       setResponses(rsp);
+      setItemResponses(ir);
       setLoading(false);
     });
   }, [oerId, rubricId]);
@@ -145,6 +149,34 @@ export default function FinalSubmission() {
     c => c.ratingSummary === "needs_improvement" || c.ratingSummary === "exceeds"
   );
 
+  // All annotation IDs across criteria, mapped to their criterion
+  const allAnnotations = report.criteria.flatMap((c) =>
+    c.annotations.map((a) => ({ ...a, criterionId: c.criterionId, criterionTitle: c.criterionTitle }))
+  );
+
+  const deferredItems = allAnnotations.filter(
+    (a) => itemResponses.find((r) => r.annotationId === a.id)?.itemStatus === "later"
+  );
+
+  const STATUS_LABEL: Record<ItemStatus, string> = {
+    addressed:    "Addressed",
+    later:        "Later",
+    wont_address: "Won't address",
+  };
+
+  function getCriterionDistribution(criterionAnnotationIds: string[]) {
+    const relevant = itemResponses.filter((r) => criterionAnnotationIds.includes(r.annotationId) && r.itemStatus != null);
+    if (relevant.length === 0) return null;
+    const counts: Partial<Record<ItemStatus, number>> = {};
+    for (const r of relevant) {
+      if (r.itemStatus) counts[r.itemStatus] = (counts[r.itemStatus] ?? 0) + 1;
+    }
+    return (["addressed", "later", "wont_address"] as ItemStatus[])
+      .filter((s) => counts[s])
+      .map((s) => `${counts[s]} ${STATUS_LABEL[s]}`)
+      .join(" · ");
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-6 pt-20 pb-16 space-y-10">
 
@@ -236,6 +268,43 @@ export default function FinalSubmission() {
         </p>
       </section>
 
+      {/* Deferred items (Later) — only shown when any exist */}
+      {deferredItems.length > 0 && (
+        <section className="space-y-3">
+          <p className={SECTION_LABEL}>Items Deferred (Later)</p>
+          <p className="text-sm text-on-surface-variant">
+            You marked the following items to revisit later. The coordinator will see these as deferred.
+          </p>
+          <div className="space-y-2">
+            {deferredItems.map((a) => {
+              const cfg = a.tag ? TAG_CONFIG[a.tag] : null;
+              return (
+                <div key={a.id} className="flex items-start gap-3 rounded-lg border border-sky-200 bg-sky-50/60 px-3 py-2.5">
+                  <span className="text-[11px] font-mono font-semibold text-on-surface-variant/60 bg-white border border-outline-variant/20 px-1.5 py-0.5 rounded shrink-0 mt-0.5">
+                    {a.criterionId}
+                  </span>
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className="text-[11px] text-on-surface-variant/50 truncate">{a.criterionTitle}</p>
+                    {cfg && (
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${cfg.cls}`}>
+                        <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>{cfg.icon}</span>
+                        {cfg.label}
+                      </span>
+                    )}
+                    <p className="text-sm text-on-surface leading-snug">
+                      {a.comment.length > 120 ? `${a.comment.slice(0, 120)}…` : a.comment}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-semibold text-sky-600 bg-sky-100 border border-sky-300 px-1.5 py-0.5 rounded-full mt-0.5">
+                    Later
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Section 2: Revision summary */}
       <section className="space-y-3">
         <p className={SECTION_LABEL}>Summary of Your Revisions</p>
@@ -266,6 +335,14 @@ export default function FinalSubmission() {
                     <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>
                       {badge.label}
                     </span>
+                    {(() => {
+                      const dist = getCriterionDistribution(c.annotations.map((a) => a.id));
+                      return dist ? (
+                        <p className="text-xs text-on-surface-variant/60">
+                          <span className="font-medium">Items: </span>{dist}
+                        </p>
+                      ) : null;
+                    })()}
                     <p className="text-xs text-on-surface-variant/60">
                       {resp?.revisionLog?.trim()
                         ? `Revision log: "${resp.revisionLog.slice(0, 120)}${resp.revisionLog.length > 120 ? "…" : ""}"`
