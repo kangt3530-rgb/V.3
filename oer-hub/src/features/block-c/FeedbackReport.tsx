@@ -25,13 +25,6 @@ import { ActionListView } from "./ActionListView";
 
 // ── Rating dot colors & criterion nav ─────────────────────────────────────────
 
-const DOT_COLOR: Record<CriterionRatingSummary, string> = {
-  needs_improvement: "#ba1a1a",
-  proficient:        "#735c00",
-  exceeds:           "#1a5c3a",
-  mixed:             "#ba1a1a",
-};
-
 const DOT_TITLE: Record<CriterionRatingSummary, string> = {
   needs_improvement: "Does Not Meet",
   proficient:        "Exemplifies",
@@ -135,24 +128,34 @@ function StickyHeader({
       {/* Row 2: filter chips */}
       <FilterChips criteria={criteria} responses={responses} />
 
-      {/* Row 3: criteria navigation */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {criteria.map((c, i) => (
+      {/* Row 3: criteria navigation circles */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {report.freeNotes.length > 0 && (
           <button
-            key={c.criterionId}
-            onClick={() => onScrollToCriterion(c.criterionId)}
-            title={`${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-on-surface-variant/70 hover:bg-surface-container-high hover:text-primary transition-colors shrink-0 whitespace-nowrap"
+            onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            title="Reviewer's General Comments"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+            style={{ backgroundColor: "var(--color-primary)" }}
           >
-            <span
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: DOT_COLOR[c.ratingSummary] }}
-            />
-            <span className="font-mono font-semibold text-[10px]">{c.criterionId}</span>
-            <span className="hidden sm:inline truncate max-w-[120px]">{c.criterionTitle}</span>
-            {i < criteria.length - 1 && <span className="text-outline-variant/30 ml-1">·</span>}
+            G
           </button>
-        ))}
+        )}
+        {criteria.map((c, i) => {
+          const bg =
+            c.ratingSummary === "exceeds"   ? "#1a5c3a" :
+            c.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
+          return (
+            <button
+              key={c.criterionId}
+              onClick={() => onScrollToCriterion(c.criterionId)}
+              title={`${c.criterionId} · ${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: bg }}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
