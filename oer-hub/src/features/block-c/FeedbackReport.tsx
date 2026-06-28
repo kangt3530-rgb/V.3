@@ -15,7 +15,6 @@ import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
 import { ReviewSummaryPanel as _ReviewSummaryPanel } from '../../components/ui/ReviewSummaryPanel';
-import { TabBar } from '../../components/ui/TabBar';
 import { FilterChips } from "./FilterChips";
 import { CriterionSection } from "./CriterionSection";
 import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
@@ -65,10 +64,6 @@ function StickyHeader({
   onScrollToCriterion: (criterionId: string) => void;
 }) {
   const criteria = report.criteria;
-  const total = criteria.length;
-  const niCount = criteria.filter((c) => c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed").length;
-  const exceedsCount = criteria.filter((c) => c.ratingSummary === "exceeds").length;
-  const proficientCount = criteria.filter((c) => c.ratingSummary === "proficient").length;
   const attentionCount = criteria.filter(
     (c) =>
       (c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed") &&
@@ -77,45 +72,51 @@ function StickyHeader({
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: rubric name · counts · status · view toggle · export */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Row 1: rubric name · status badge · view toggle · export */}
+      <div className="flex items-center gap-3 min-w-0">
         <p className="font-semibold text-sm text-primary shrink-0">{report.rubricName} Review</p>
-        <span className="text-outline-variant/60 shrink-0">·</span>
-        <span className="text-xs text-on-surface-variant truncate">
-          {proficientCount}/{total} proficient
-          {niCount > 0 && <> · {niCount} NI</>}
-          {exceedsCount > 0 && <> · {exceedsCount} exceed</>}
-        </span>
 
         {isReadOnly ? (
-          <span className="text-xs text-on-surface-variant/60 shrink-0 ml-1 flex items-center gap-1">
+          <span className="text-xs text-on-surface-variant/60 shrink-0 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">mail</span>
-            Submitted for verification
+            Submitted
             {submittedAt && (
               <> · {new Date(submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
             )}
           </span>
         ) : allNiHandled ? (
-          <span className="text-xs text-emerald-600 shrink-0 ml-1 flex items-center gap-1">
+          <span className="text-xs text-emerald-600 shrink-0 flex items-center gap-1">
             <span className="material-symbols-outlined text-[14px]">check_circle</span>
             All items addressed
           </span>
         ) : attentionCount > 0 ? (
-          <span className="text-xs font-semibold shrink-0 ml-1" style={{ color: "var(--color-rating-dnm-text)" }}>
+          <span className="text-xs font-semibold shrink-0" style={{ color: "var(--color-rating-dnm-text)" }}>
             {attentionCount} need attention
           </span>
         ) : null}
 
-        <div className="ml-auto shrink-0 flex items-center gap-2">
-          <TabBar
-            tabs={[
-              { id: 'report', label: 'Report' },
-              { id: 'action_list', label: 'Action list' },
-            ]}
-            activeId={activeView}
-            onChange={(id) => onViewChange(id as 'report' | 'action_list')}
-            className="border-none bg-transparent"
-          />
+        <div className="ml-auto shrink-0 flex items-center gap-3">
+          {/* View toggle — plain text tabs */}
+          <div className="flex items-center gap-0.5">
+            {(["report", "action_list"] as const).map((v) => {
+              const label = v === "report" ? "Report" : "Action list";
+              const active = activeView === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => onViewChange(v)}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    active
+                      ? "font-semibold text-primary border-b-2 border-primary"
+                      : "text-on-surface-variant/60 hover:text-primary"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
           {import.meta.env.DEV && onResetDemo && (
             <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               [Reset demo]
