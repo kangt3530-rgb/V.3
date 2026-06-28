@@ -48,23 +48,45 @@ function ActionCard({
 
   return (
     <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 space-y-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5 flex-1 min-w-0">
-          {/* Criterion badge + tag pill */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-mono font-semibold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/20">
-              {item.criterionId}
-            </span>
-            <span className="text-[11px] text-on-surface-variant/50 truncate">{item.criterionTitle}</span>
-            <span className={`flex items-center gap-1 text-[11px] font-semibold ${cfg.cls}`}>
-              <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                {cfg.icon}
-              </span>
-              {cfg.label}
-            </span>
-          </div>
-          {/* Comment */}
-          <p className="text-sm text-on-surface leading-relaxed">{item.comment}</p>
+      {/* Criterion badge + tag pill — full width */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[11px] font-mono font-semibold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/20">
+          {item.criterionId}
+        </span>
+        <span className="text-[11px] text-on-surface-variant/50 truncate">{item.criterionTitle}</span>
+        <span className={`flex items-center gap-1 text-[11px] font-semibold ${cfg.cls}`}>
+          <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {cfg.icon}
+          </span>
+          {cfg.label}
+        </span>
+      </div>
+      {/* Comment — full width */}
+      <p className="text-sm text-on-surface leading-relaxed">{item.comment}</p>
+      {/* Revision log + status pills on same line */}
+      <div className="border-t border-outline-variant/20 pt-2 flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {expandedRevNote ? (
+            <textarea
+              rows={2}
+              placeholder="How you addressed this…"
+              defaultValue={savedNote}
+              onChange={(e) => handleRevNoteChange(e.target.value)}
+              onBlur={(e) => {
+                if (!e.target.value.trim()) setExpandedRevNote(false);
+              }}
+              autoFocus={!savedNote}
+              className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExpandedRevNote(true)}
+              className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
+            >
+              + Revision log
+            </button>
+          )}
         </div>
         <div className="flex-shrink-0">
           <StatusPillGroup
@@ -80,30 +102,6 @@ function ActionCard({
             }
           />
         </div>
-      </div>
-      {/* Revision log */}
-      <div className="border-t border-outline-variant/20 pt-2">
-        {expandedRevNote ? (
-          <textarea
-            rows={2}
-            placeholder="How you addressed this…"
-            defaultValue={savedNote}
-            onChange={(e) => handleRevNoteChange(e.target.value)}
-            onBlur={(e) => {
-              if (!e.target.value.trim()) setExpandedRevNote(false);
-            }}
-            autoFocus={!savedNote}
-            className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setExpandedRevNote(true)}
-            className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
-          >
-            + Revision log
-          </button>
-        )}
       </div>
       {/* Open in report */}
       <button
