@@ -56,20 +56,20 @@ function CriterionDot({
       >
         {index + 1}
       </button>
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-50 pointer-events-none">
-        <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap text-left">
-          <p className="text-[11px] font-semibold">{criterion.criterionId} · {criterion.criterionTitle} — {ratingLabel}</p>
-        </div>
+      {/* Tooltip — appears below to avoid overflow-x-auto clipping */}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-50 pointer-events-none">
         {/* Arrow */}
         <div
-          className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0"
           style={{
             borderLeft: "5px solid transparent",
             borderRight: "5px solid transparent",
-            borderTop: "5px solid #171717",
+            borderBottom: "5px solid #171717",
           }}
         />
+        <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap text-left">
+          <p className="text-[11px] font-semibold">{criterion.criterionId} · {criterion.criterionTitle} — {ratingLabel}</p>
+        </div>
       </div>
     </div>
   );
@@ -135,11 +135,11 @@ function StickyHeader({
             >
               G
             </button>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-50 pointer-events-none">
-              <div className="rounded-md px-2.5 py-1.5 text-white shadow-lg whitespace-nowrap bg-primary">
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-50 pointer-events-none">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-neutral-900" />
+              <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap">
                 <p className="text-[11px] font-semibold">General Comments</p>
               </div>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-primary" />
             </div>
           </div>
         )}
