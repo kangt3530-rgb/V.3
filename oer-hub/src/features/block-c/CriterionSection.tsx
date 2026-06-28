@@ -66,7 +66,7 @@ export function CriterionSection({
   onItemResponseSaved,
   isReadOnly = false,
 }: CriterionSectionProps) {
-  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId, openAiChat, aiChatCriterionId, aiChatOpen } = useRevisionStore();
+  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId } = useRevisionStore();
   const draft = draftResponses[criterion.criterionId] ?? {};
   const criterionId = criterion.criterionId;
   const oerId = currentOerId ?? response?.oerId ?? "";
@@ -252,16 +252,6 @@ export function CriterionSection({
             </p>
             <div className="flex gap-4 text-xs text-on-surface-variant/60 mt-0.5">
               <button onClick={() => setDefinitionModalOpen(true)} className="hover:text-primary transition-colors">Read full definition</button>
-              <button
-                onClick={() => openAiChat(criterion.criterionId)}
-                className={`hover:text-primary transition-colors ${
-                  aiChatOpen && aiChatCriterionId === criterion.criterionId
-                    ? "text-primary font-medium"
-                    : ""
-                }`}
-              >
-                💬 Ask AI{aiChatOpen && aiChatCriterionId === criterion.criterionId ? " (active)" : ""}
-              </button>
             </div>
           </div>
 
