@@ -233,20 +233,11 @@ export interface IAuthorItemResponse {
   revisionNote?: string;
 }
 
-export interface ICoordinatorQuestion {
-  id: string;
-  questionText: string;
-  sentAt: string;
-  reply: string | null;
-  repliedAt: string | null;
-}
-
 export interface ICriterionResponse {
   oerId: string;
   rubricTemplateId: RubricTemplateId;
   criterionId: string;
   revisionLog: string;
-  coordinatorQuestion: ICoordinatorQuestion | null;
   status: RevisionStatus;
   resolvedAt: string | null;
   markResolvedAutoFilled?: boolean;

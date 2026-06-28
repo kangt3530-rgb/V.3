@@ -32,7 +32,6 @@ export function ExportPanel({ report, responses, onClose }: ExportPanelProps) {
   const [includeComments, setIncludeComments] = useState(true);
   const [includeAnnotations, setIncludeAnnotations] = useState(true);
   const [includeLogs, setIncludeLogs] = useState(true);
-  const [includeCoordinatorQ, setIncludeCoordinatorQ] = useState(false);
   const [filterNI, setFilterNI] = useState(false);
   const [filterUnresolved, setFilterUnresolved] = useState(false);
   const [format, setFormat] = useState<Format>("pdf");
@@ -55,10 +54,10 @@ export function ExportPanel({ report, responses, onClose }: ExportPanelProps) {
         const r = responses.find(r => r.criterionId === c.criterionId);
         return !r || r.status === "unresolved";
       });
-    return { criteria: crit, responses, includeComments, includeAnnotations, includeLogs, includeCoordinatorQ };
+    return { criteria: crit, responses, includeComments, includeAnnotations, includeLogs };
   }, [
     scope, selectedCriteria, filterNI, filterUnresolved, report,
-    responses, includeComments, includeAnnotations, includeLogs, includeCoordinatorQ,
+    responses, includeComments, includeAnnotations, includeLogs,
   ]);
 
   const pageEstimate = 3 + exportConfig.criteria.length;
@@ -162,7 +161,6 @@ export function ExportPanel({ report, responses, onClose }: ExportPanelProps) {
                 ["Reviewer's comments", includeComments, setIncludeComments],
                 ["Annotations", includeAnnotations, setIncludeAnnotations],
                 ["My revision logs", includeLogs, setIncludeLogs],
-                ["Questions to coordinator", includeCoordinatorQ, setIncludeCoordinatorQ],
               ] as [string, boolean, (v: boolean) => void][]
             ).map(([label, val, setter]) => (
               <label key={label} className="flex items-center gap-2 text-sm cursor-pointer">

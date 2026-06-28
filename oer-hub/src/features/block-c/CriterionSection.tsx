@@ -3,13 +3,11 @@ import type {
   IAggregatedCriterionFeedback,
   IAuthorItemResponse,
   ICriterionResponse,
-  ICoordinatorQuestion,
   IFreeNote,
 } from "../../api/types";
 import { upsertCriterionResponse } from "../../api";
 import { useRevisionStore } from "../../store/revisionStore";
 import { TAG_CONFIG } from "../block-b/annotationTagConfig";
-import { Button } from "../../components/ui/Button";
 import { RatingPill } from "./RatingPill";
 import { RubricDefinitionModal } from "./RubricDefinitionModal";
 import { StatusPillGroup } from "./StatusPillGroup";
@@ -40,10 +38,6 @@ function buildDefaultResponse(
     rubricTemplateId: criterion.rubricTemplateId,
     criterionId: criterion.criterionId,
     revisionLog: draft.revisionLog ?? existing?.revisionLog ?? "",
-    coordinatorQuestion:
-      draft.coordinatorQuestion !== undefined
-        ? draft.coordinatorQuestion
-        : existing?.coordinatorQuestion ?? null,
     status: draft.status ?? existing?.status ?? "unresolved",
     resolvedAt:
       (draft.status ?? existing?.status) === "resolved"
@@ -78,7 +72,6 @@ export function CriterionSection({
   const oerId = currentOerId ?? response?.oerId ?? "";
 
   const [definitionModalOpen, setDefinitionModalOpen] = useState(false);
-  const [questionInput, setQuestionInput] = useState("");
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "actionable" | "notes">("all");
@@ -126,30 +119,6 @@ export function CriterionSection({
       setShowNudge(false);
     }
   }
-
-  function handleSendQuestion() {
-    if (!questionInput.trim()) return;
-    const q: ICoordinatorQuestion = {
-      id: `q-${criterionId}-${Date.now()}`,
-      questionText: questionInput.trim(),
-      sentAt: new Date().toISOString(),
-      reply: null,
-      repliedAt: null,
-    };
-    updateDraftResponse(criterionId, { coordinatorQuestion: q, status: "awaiting_clarification" });
-    setQuestionInput("");
-    saveResponse({ coordinatorQuestion: q, status: "awaiting_clarification" });
-  }
-
-  function handleCancelQuestion() {
-    updateDraftResponse(criterionId, { coordinatorQuestion: null, status: "unresolved" });
-    saveResponse({ coordinatorQuestion: null, status: "unresolved" });
-  }
-
-  const coordinatorQuestion =
-    draft.coordinatorQuestion !== undefined
-      ? draft.coordinatorQuestion
-      : response?.coordinatorQuestion ?? null;
 
   const revisionLog = draft.revisionLog ?? response?.revisionLog ?? "";
   const currentStatus = draft.status ?? response?.status ?? "unresolved";
@@ -476,89 +445,7 @@ export function CriterionSection({
             </div>
           )}
 
-          {/* Block 5: Ask coordinator (hidden in read-only unless a question exists) */}
-          {showAuthorBlocks && !isProficient && (!isReadOnly || coordinatorQuestion) && (
-            <div className="space-y-1.5">
-              <p className={SECTION_LABEL}>Ask Coordinator</p>
-
-              {!coordinatorQuestion && (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Optional question routed to your lead..."
-                    value={questionInput}
-                    onChange={(e) => setQuestionInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleSendQuestion(); }}
-                    className={AUTHOR_INPUT}
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleSendQuestion}
-                    disabled={!questionInput.trim()}
-                  >
-                    Send
-                  </Button>
-                </div>
-              )}
-
-              {coordinatorQuestion && !coordinatorQuestion.reply && (
-                <div className="bg-surface-container-low rounded-md p-2.5 space-y-1">
-                  <p className="text-sm text-on-surface">{coordinatorQuestion.questionText}</p>
-                  <p className="text-xs text-on-surface-variant/60">
-                    Sent {new Date(coordinatorQuestion.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Awaiting reply
-                  </p>
-                  <button
-                    className="text-xs text-secondary hover:underline transition-colors"
-                    onClick={handleCancelQuestion}
-                  >
-                    Cancel question
-                  </button>
-                </div>
-              )}
-
-              {coordinatorQuestion?.reply && (
-                <div className="space-y-2">
-                  <div className="bg-surface-container-low rounded-md p-2.5 space-y-0.5">
-                    <p className="text-xs text-on-surface-variant/60">Your question</p>
-                    <p className="text-sm text-on-surface">{coordinatorQuestion.questionText}</p>
-                    <p className="text-xs text-on-surface-variant/60">
-                      {new Date(coordinatorQuestion.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                  </div>
-                  <div className="bg-amber-50/70 rounded-md p-2.5 space-y-0.5">
-                    <p className="text-xs text-on-surface-variant/60">Coordinator reply</p>
-                    <p className="text-sm text-on-surface">{coordinatorQuestion.reply}</p>
-                    {coordinatorQuestion.repliedAt && (
-                      <p className="text-xs text-on-surface-variant/60">
-                        {new Date(coordinatorQuestion.repliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Follow-up question..."
-                      value={questionInput}
-                      onChange={(e) => setQuestionInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleSendQuestion(); }}
-                      className={AUTHOR_INPUT}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleSendQuestion}
-                      disabled={!questionInput.trim()}
-                    >
-                      Send
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Block 6: Mark resolved (NI and Mixed only) */}
+          {/* Block 5: Mark resolved (NI and Mixed only) */}
           {isNI && (
             <div className="pt-3 border-t border-outline-variant/15 space-y-2">
               <div className="flex justify-end items-center gap-3">
