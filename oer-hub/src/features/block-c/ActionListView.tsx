@@ -1,9 +1,121 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { IAuthorItemResponse, IPerRubricReport } from "../../api/types";
 import { TAG_CONFIG } from "../block-b/annotationTagConfig";
 import { StatusPillGroup } from "./StatusPillGroup";
 
 type ActionFilter = "all" | "action_item" | "quick_fix";
+
+type ActionItem = {
+  annotationId: string;
+  criterionId: string;
+  criterionTitle: string;
+  tag: "action_item" | "quick_fix";
+  comment: string;
+  oerId: string;
+  rubricTemplateId: IPerRubricReport["rubricTemplateId"];
+};
+
+function ActionCard({
+  item,
+  itemResponses,
+  onItemResponseSaved,
+  onOpenInReport,
+}: {
+  item: ActionItem;
+  itemResponses: IAuthorItemResponse[];
+  onItemResponseSaved: (r: IAuthorItemResponse) => void;
+  onOpenInReport: (criterionId: string, annotationId: string) => void;
+}) {
+  const cfg = TAG_CONFIG[item.tag];
+  const existingResponse = itemResponses.find((r) => r.annotationId === item.annotationId);
+  const itemStatus = existingResponse?.itemStatus ?? null;
+  const savedNote = existingResponse?.revisionNote ?? "";
+  const [expandedRevNote, setExpandedRevNote] = useState(savedNote.length > 0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleRevNoteChange(value: string) {
+    const base: IAuthorItemResponse = existingResponse ?? {
+      annotationId: item.annotationId,
+      oerId: item.oerId,
+      rubricTemplateId: item.rubricTemplateId,
+      itemStatus: null,
+    };
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onItemResponseSaved({ ...base, revisionNote: value });
+    }, 800);
+  }
+
+  return (
+    <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5 flex-1 min-w-0">
+          {/* Criterion badge + tag pill */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-mono font-semibold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/20">
+              {item.criterionId}
+            </span>
+            <span className="text-[11px] text-on-surface-variant/50 truncate">{item.criterionTitle}</span>
+            <span className={`flex items-center gap-1 text-[11px] font-semibold ${cfg.cls}`}>
+              <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                {cfg.icon}
+              </span>
+              {cfg.label}
+            </span>
+          </div>
+          {/* Comment */}
+          <p className="text-sm text-on-surface leading-relaxed">{item.comment}</p>
+        </div>
+        <div className="flex-shrink-0">
+          <StatusPillGroup
+            itemId={item.annotationId}
+            status={itemStatus}
+            onChange={(status) =>
+              onItemResponseSaved({
+                annotationId: item.annotationId,
+                oerId: item.oerId,
+                rubricTemplateId: item.rubricTemplateId,
+                itemStatus: status,
+              })
+            }
+          />
+        </div>
+      </div>
+      {/* Revision log */}
+      <div className="border-t border-outline-variant/20 pt-2">
+        {expandedRevNote ? (
+          <textarea
+            rows={2}
+            placeholder="How you addressed this…"
+            defaultValue={savedNote}
+            onChange={(e) => handleRevNoteChange(e.target.value)}
+            onBlur={(e) => {
+              if (!e.target.value.trim()) setExpandedRevNote(false);
+            }}
+            autoFocus={!savedNote}
+            className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpandedRevNote(true)}
+            className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
+          >
+            + Revision log
+          </button>
+        )}
+      </div>
+      {/* Open in report */}
+      <button
+        type="button"
+        onClick={() => onOpenInReport(item.criterionId, item.annotationId)}
+        className="text-xs text-secondary hover:underline transition-colors"
+      >
+        ↗ Open in report
+      </button>
+    </div>
+  );
+}
 
 interface ActionListViewProps {
   report: IPerRubricReport;
@@ -19,16 +131,6 @@ export function ActionListView({
   onOpenInReport,
 }: ActionListViewProps) {
   const [filter, setFilter] = useState<ActionFilter>("all");
-
-  type ActionItem = {
-    annotationId: string;
-    criterionId: string;
-    criterionTitle: string;
-    tag: "action_item" | "quick_fix";
-    comment: string;
-    oerId: string;
-    rubricTemplateId: typeof report.rubricTemplateId;
-  };
 
   const allActionItems: ActionItem[] = report.criteria.flatMap((c) =>
     c.annotations
@@ -106,61 +208,15 @@ export function ActionListView({
         </div>
 
         {/* Cards */}
-        {filtered.map((item) => {
-          const cfg = TAG_CONFIG[item.tag];
-          const itemStatus = itemResponses.find((r) => r.annotationId === item.annotationId)?.itemStatus ?? null;
-          return (
-            <div
-              key={item.annotationId}
-              className="bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 space-y-2"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  {/* Criterion badge + tag pill */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono font-semibold text-on-surface-variant/60 bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant/20">
-                      {item.criterionId}
-                    </span>
-                    <span className="text-[11px] text-on-surface-variant/50 truncate">{item.criterionTitle}</span>
-                    <span className={`flex items-center gap-1 text-[11px] font-semibold ${cfg.cls}`}>
-                      <span
-                        className="material-symbols-outlined text-[12px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        {cfg.icon}
-                      </span>
-                      {cfg.label}
-                    </span>
-                  </div>
-                  {/* Comment */}
-                  <p className="text-sm text-on-surface leading-relaxed">{item.comment}</p>
-                  {/* Open in report */}
-                  <button
-                    type="button"
-                    onClick={() => onOpenInReport(item.criterionId, item.annotationId)}
-                    className="text-xs text-secondary hover:underline transition-colors"
-                  >
-                    ↗ Open in report
-                  </button>
-                </div>
-                <div className="flex-shrink-0">
-                  <StatusPillGroup
-                    itemId={item.annotationId}
-                    status={itemStatus}
-                    onChange={(status) =>
-                      onItemResponseSaved({
-                        annotationId: item.annotationId,
-                        oerId: item.oerId,
-                        rubricTemplateId: item.rubricTemplateId,
-                        itemStatus: status,
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {filtered.map((item) => (
+          <ActionCard
+            key={item.annotationId}
+            item={item}
+            itemResponses={itemResponses}
+            onItemResponseSaved={onItemResponseSaved}
+            onOpenInReport={onOpenInReport}
+          />
+        ))}
 
         {filtered.length === 0 && (
           <p className="text-xs text-on-surface-variant/50 text-center py-4">

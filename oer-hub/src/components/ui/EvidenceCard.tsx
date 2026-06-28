@@ -13,6 +13,7 @@ interface EvidenceCardProps {
   annotation: EvidenceCardAnnotation
   className?: string
   onGoToAnnotation?: () => void
+  footer?: React.ReactNode
 }
 
 const TAG_CONFIG: Record<'action_item' | 'quick_fix', { icon: string; label: string; iconCls: string }> = {
@@ -28,7 +29,9 @@ const TAG_CONFIG: Record<'action_item' | 'quick_fix', { icon: string; label: str
   },
 }
 
-export function EvidenceCard({ annotation, className, onGoToAnnotation }: EvidenceCardProps) {
+import React from 'react'
+
+export function EvidenceCard({ annotation, className, onGoToAnnotation, footer }: EvidenceCardProps) {
   const tag = (annotation.tag === 'action_item' || annotation.tag === 'quick_fix') ? annotation.tag : null
 
   return (
@@ -88,6 +91,11 @@ export function EvidenceCard({ annotation, className, onGoToAnnotation }: Eviden
           </button>
         )}
       </p>
+      {footer && (
+        <div className="border-t border-[var(--color-border)] mt-1 pt-2">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }

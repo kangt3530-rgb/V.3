@@ -87,57 +87,59 @@ export function AnnotationRow({
     }, 800);
   }
 
+  const revisionFooter = (
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        {isExpanded ? (
+          <textarea
+            rows={2}
+            placeholder="How you addressed this…"
+            defaultValue={savedNote}
+            onChange={(e) => handleRevNoteChange(e.target.value)}
+            onBlur={(e) => {
+              if (!e.target.value.trim()) setExpandedRevNote(false);
+            }}
+            autoFocus={!savedNote}
+            className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpandedRevNote(true)}
+            className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
+          >
+            + Revision log
+          </button>
+        )}
+      </div>
+      <div className="flex-shrink-0">
+        <StatusPillGroup
+          itemId={itemId}
+          status={itemStatus}
+          onChange={(status) =>
+            onItemResponseSaved({
+              annotationId: itemId,
+              oerId,
+              rubricTemplateId,
+              itemStatus: status,
+            })
+          }
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div
       id={`annotation-${itemId}`}
       className={`rounded-md transition-colors duration-300 ${isViewing ? "ring-1 ring-amber-200" : ""}`}
     >
-      <EvidenceCard annotation={annotation} onGoToAnnotation={onGoToAnnotation} />
+      <EvidenceCard annotation={annotation} onGoToAnnotation={onGoToAnnotation} footer={revisionFooter} />
       {otherCriteriaLabel && (
         <p className="text-[10px] text-on-surface-variant/50 px-3 pt-1">
           Also under {otherCriteriaLabel}
         </p>
       )}
-      {/* Revision log + status pills */}
-      <div className="px-3 pb-2 pt-1 flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          {isExpanded ? (
-            <textarea
-              rows={2}
-              placeholder="How you addressed this…"
-              defaultValue={savedNote}
-              onChange={(e) => handleRevNoteChange(e.target.value)}
-              onBlur={(e) => {
-                if (!e.target.value.trim()) setExpandedRevNote(false);
-              }}
-              autoFocus={!savedNote}
-              className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setExpandedRevNote(true)}
-              className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
-            >
-              + Revision log review
-            </button>
-          )}
-        </div>
-        <div className="flex-shrink-0">
-          <StatusPillGroup
-            itemId={itemId}
-            status={itemStatus}
-            onChange={(status) =>
-              onItemResponseSaved({
-                annotationId: itemId,
-                oerId,
-                rubricTemplateId,
-                itemStatus: status,
-              })
-            }
-          />
-        </div>
-      </div>
     </div>
   );
 }
