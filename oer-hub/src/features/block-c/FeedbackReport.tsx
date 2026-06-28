@@ -124,7 +124,7 @@ function StickyHeader({
       </div>
 
       {/* Row 2: criterion dots (both views) */}
-      <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {report.freeNotes.filter(n => (n.criterionIds ?? []).length === 0).length > 0 && (
           <div className="relative group/dot">
             <button
