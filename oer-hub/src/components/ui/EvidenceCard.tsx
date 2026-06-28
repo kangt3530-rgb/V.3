@@ -51,35 +51,43 @@ export function EvidenceCard({ annotation, className, onGoToAnnotation }: Eviden
         </div>
       )}
 
-      {/* Annotated text — italic */}
+      {/* Annotated text (italic) + navigation icon at the end of this block */}
       {annotation.selectedText && (
-        <blockquote
-          className="pl-3 italic text-body-sm text-[var(--color-text-secondary)] leading-relaxed"
-          style={{ borderLeft: '2px solid var(--color-secondary)' }}
-        >
-          {annotation.selectedText}
-        </blockquote>
+        <div>
+          <blockquote
+            className="pl-3 italic text-body-sm text-[var(--color-text-secondary)] leading-relaxed"
+            style={{ borderLeft: '2px solid var(--color-secondary)' }}
+          >
+            {annotation.selectedText}
+          </blockquote>
+          {onGoToAnnotation && (
+            <button
+              type="button"
+              onClick={onGoToAnnotation}
+              title="Go to annotation in OER"
+              className="ml-3 mt-1 flex items-center gap-0.5 text-[var(--color-primary)] hover:opacity-70 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+            </button>
+          )}
+        </div>
       )}
 
       {/* Reviewer comment — normal body text */}
       <p className="text-body-sm text-[var(--color-text-primary)] leading-relaxed break-words hyphens-auto">
         {annotation.comment}
-      </p>
-
-      {/* Bottom row: nav icon at left */}
-      {onGoToAnnotation && annotation.selectedText && (
-        <div className="flex items-center">
+        {/* For notes without selectedText (freeNotes), show navigation icon inline at end */}
+        {!annotation.selectedText && onGoToAnnotation && (
           <button
             type="button"
             onClick={onGoToAnnotation}
-            title="Go to annotation in OER"
-            className="flex items-center gap-1 text-body-sm text-[var(--color-primary)] hover:underline underline-offset-2 transition-colors"
+            title="View source"
+            className="inline-flex items-center ml-1.5 align-middle text-[var(--color-primary)] hover:opacity-70 transition-opacity"
           >
-            <span className="material-symbols-outlined text-[15px]">open_in_new</span>
-            <span>Go to Annotation</span>
+            <span className="material-symbols-outlined text-[14px]">north_east</span>
           </button>
-        </div>
-      )}
+        )}
+      </p>
     </div>
   )
 }
