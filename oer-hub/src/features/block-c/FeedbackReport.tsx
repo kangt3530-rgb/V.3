@@ -19,7 +19,6 @@ import { CriterionSection } from "./CriterionSection";
 import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
 import { OERPreviewPane } from "./OERPreviewPane";
 import { ExportPanel } from "./ExportPanel";
-import { AIChatbox } from "../../components/ai/AIChatbox";
 import { ActionListView } from "./ActionListView";
 
 // ── Inline outcome dots for the compact header row ────────────────────────────
@@ -155,13 +154,7 @@ export default function FeedbackReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
-  const [aiButtonPulsing, setAiButtonPulsing] = useState(true);
   const [activeView, setActiveView] = useState<"report" | "action_list">("report");
-
-  useEffect(() => {
-    const t = setTimeout(() => setAiButtonPulsing(false), 3000);
-    return () => clearTimeout(t);
-  }, []);
 
   const {
     setContext,
@@ -178,16 +171,11 @@ export default function FeedbackReport() {
     navigateAnnotation,
     reportScrollPending,
     clearReportScroll,
-    aiChatOpen,
-    toggleAiChat,
-    aiChatWidth,
-    setAiChatWidth,
     setOerPaneWidth,
   } = useRevisionStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const oerDragging = useRef(false);
-  const aiDragging = useRef(false);
 
   const onDragMouseMove = useCallback((e: MouseEvent) => {
     if (!containerRef.current) return;
@@ -196,15 +184,10 @@ export default function FeedbackReport() {
       const pct = ((e.clientX - rect.left) / rect.width) * 100;
       setOerPaneWidth(Math.min(50, Math.max(15, pct)));
     }
-    if (aiDragging.current) {
-      const pct = ((rect.right - e.clientX) / rect.width) * 100;
-      setAiChatWidth(Math.min(40, Math.max(15, pct)));
-    }
-  }, [setOerPaneWidth, setAiChatWidth]);
+  }, [setOerPaneWidth]);
 
   const onDragMouseUp = useCallback(() => {
     oerDragging.current = false;
-    aiDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
@@ -268,20 +251,6 @@ export default function FeedbackReport() {
     return () => clearTimeout(t);
   }, [viewingAnnotationId, reportScrollPending, report, collapsedCriteria, toggleCriterionCollapse, clearReportScroll]);
 
-  // Keyboard shortcut: Cmd/Ctrl + . toggles AI chat
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === ".") {
-        const tag = (document.activeElement as HTMLElement)?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") return;
-        e.preventDefault();
-        handleToggleAiChat();
-      }
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [aiChatOpen, exportPanelOpen]);
-
   // Keyboard navigation for OER pane
   useEffect(() => {
     if (!oerPaneOpen) return;
@@ -336,13 +305,7 @@ export default function FeedbackReport() {
   }
 
   function handleOpenExport() {
-    if (aiChatOpen) toggleAiChat();
     setExportPanelOpen(true);
-  }
-
-  function handleToggleAiChat() {
-    if (exportPanelOpen) setExportPanelOpen(false);
-    toggleAiChat();
   }
 
   function handleResponseSaved(saved: ICriterionResponse) {
@@ -399,7 +362,7 @@ export default function FeedbackReport() {
     : null;
 
   const submitUrl = `/reports/${oerId}/${rubricId}/submit`;
-  const effectiveOerWidth = oerPaneOpen && aiChatOpen ? Math.min(oerPaneWidth, 25) : oerPaneWidth;
+  const effectiveOerWidth = oerPaneWidth;
 
   return (
     <div ref={containerRef} className="h-full flex overflow-hidden pt-16">
@@ -530,37 +493,6 @@ export default function FeedbackReport() {
         )}
       </div>
 
-      {/* AI drag handle */}
-      {aiChatOpen && (
-        <div
-          className="relative group flex-shrink-0 w-1.5 cursor-col-resize select-none z-10"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            aiDragging.current = true;
-            document.body.style.cursor = "col-resize";
-            document.body.style.userSelect = "none";
-          }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-px h-full bg-outline-variant/20 group-hover:bg-secondary/50 transition-colors duration-150" />
-          </div>
-        </div>
-      )}
-
-      {/* Right: AI pane */}
-      {aiChatOpen && (
-        <div
-          className="flex-shrink-0 h-full overflow-hidden"
-          style={{ width: `${aiChatWidth}%`, animation: "slideInRight 200ms ease-out" }}
-        >
-          <AIChatbox
-            report={report}
-            responses={responses}
-            onClose={handleToggleAiChat}
-          />
-        </div>
-      )}
-
       {/* Export panel overlay */}
       {exportPanelOpen && (
         <ExportPanel
@@ -568,17 +500,6 @@ export default function FeedbackReport() {
           responses={responses}
           onClose={() => setExportPanelOpen(false)}
         />
-      )}
-
-      {/* Floating AI trigger button */}
-      {!aiChatOpen && (
-        <button
-          onClick={handleToggleAiChat}
-          title="AI Assistant (⌘.)"
-          className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-150 flex items-center justify-center print-hidden${aiButtonPulsing ? " animate-pulse" : ""}`}
-        >
-          <span className="material-symbols-outlined text-[22px]">smart_toy</span>
-        </button>
       )}
 
     </div>

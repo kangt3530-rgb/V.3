@@ -30,8 +30,6 @@ export default function FinalSubmission() {
   const [uploadedFilename, setUploadedFilename] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [coverNote, setCoverNote] = useState("");
-  const [aiDraftApplied, setAiDraftApplied] = useState(false);
-  const [aiDraftLoading, setAiDraftLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,57 +59,6 @@ export default function FinalSubmission() {
     if (file) setUploadedFilename(file.name);
   }
 
-  async function handleDraftWithAI() {
-    if (!report) return;
-    setAiDraftLoading(true);
-
-    const niCriteria = report.criteria.filter((c) => c.ratingSummary === "needs_improvement");
-    const exceedsCriteria = report.criteria.filter((c) => c.ratingSummary === "exceeds");
-
-    const niSummary = niCriteria
-      .map((c) => {
-        const resp = responses.find((r) => r.criterionId === c.criterionId);
-        return `- ${c.criterionId} (${c.criterionTitle}): ${resp?.status ?? "unresolved"} — Log: "${resp?.revisionLog?.trim() || "No notes recorded"}"`;
-      })
-      .join("\n");
-
-    const exceedsSummary = exceedsCriteria
-      .map((c) => `- ${c.criterionId} (${c.criterionTitle}): Exceeds Standard`)
-      .join("\n");
-
-    const systemPrompt = `You are helping an OER author write a brief cover note for their revision submission. Write in first person, professionally, 2–3 paragraphs. Do not invent changes not mentioned in the logs.`;
-
-    const userMessage = `Please draft a cover note for my revision of "${report.oer.title}" under the "${report.rubricName}" review.\n\nNeeds Improvement criteria I addressed:\n${niSummary || "None"}${exceedsSummary ? `\n\nCriteria exceeding standard:\n${exceedsSummary}` : ""}`;
-
-    try {
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
-      const res = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { maxOutputTokens: 512 },
-        }),
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      setCoverNote(text);
-      setAiDraftApplied(true);
-    } catch {
-      setCoverNote("Sorry, AI draft generation failed. Please write your cover note manually.");
-      setAiDraftApplied(false);
-    } finally {
-      setAiDraftLoading(false);
-    }
-  }
-
-  function handleCoverNoteChange(val: string) {
-    setCoverNote(val);
-    if (aiDraftApplied) setAiDraftApplied(false);
-  }
-
   async function handleSubmit() {
     if (!report || !oerId || !rubricId) return;
     setSubmitting(true);
@@ -123,7 +70,7 @@ export default function FinalSubmission() {
       revisedOerFileId: uploadedFilename,
       criterionResponses: responses,
       coverNote,
-      coverNoteAiGenerated: aiDraftApplied,
+      coverNoteAiGenerated: false,
     };
     await submitRevisionPackage(submission);
     navigate(`/reports/${oerId}`);
@@ -366,45 +313,19 @@ export default function FinalSubmission() {
           rows={5}
           placeholder="Write a cover note…"
           value={coverNote}
-          onChange={e => handleCoverNoteChange(e.target.value)}
+          onChange={e => setCoverNote(e.target.value)}
           className={`${FIELD_INPUT} resize-none`}
         />
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          {aiDraftApplied && (
-            <p className="text-xs text-secondary/80 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-              AI-generated draft · Edit freely before submitting
-            </p>
-          )}
-          <div className="ml-auto flex items-center gap-3">
-            {aiDraftApplied && (
-              <button
-                onClick={handleDraftWithAI}
-                disabled={aiDraftLoading}
-                className="text-xs text-secondary/70 hover:underline disabled:opacity-40"
-              >
-                Regenerate
-              </button>
-            )}
-            {coverNote && (
-              <button
-                onClick={() => { setCoverNote(""); setAiDraftApplied(false); }}
-                className="text-xs text-on-surface-variant/50 hover:underline"
-              >
-                Clear
-              </button>
-            )}
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={aiDraftLoading ? undefined : "auto_awesome"}
-              onClick={handleDraftWithAI}
-              disabled={aiDraftLoading}
+        {coverNote && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setCoverNote("")}
+              className="text-xs text-on-surface-variant/50 hover:underline"
             >
-              {aiDraftLoading ? "Drafting…" : "Draft with AI"}
-            </Button>
+              Clear
+            </button>
           </div>
-        </div>
+        )}
       </section>
 
       {/* Section 4: What happens next */}
