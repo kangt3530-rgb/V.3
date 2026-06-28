@@ -336,6 +336,24 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
+      // C1 — hotspot annotation (exercises thumbnail strip layout)
+      {
+        id: "ann-hotspot-demo-001",
+        taskId: "task-001",
+        criterionIds: ["C1"],
+        tag: "action_item",
+        annotationType: "hotspot",
+        screenshotUrl: "",
+        pageLocation: "Section 4.2 · p. 38",
+        taurusUrl: "",
+        comment: "This embedded simulation has no keyboard fallback and cannot be navigated without a mouse. A static alternative or transcript is required.",
+        createdAt: "2026-03-22T11:05:30Z",
+        anchor: {
+          type: "web",
+          selectedText: "",
+          rects: [],
+        },
+      },
       // C2 — proficient (1 annotation, general_feedback — exercises "no To-Do List" case)
       {
         id: "ann-demo-2",
