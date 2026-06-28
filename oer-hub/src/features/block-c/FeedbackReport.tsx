@@ -14,6 +14,8 @@ import { getPerRubricReport, getCriterionResponses, getItemResponses, upsertItem
 import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
+import { ReviewSummaryPanel as _ReviewSummaryPanel } from '../../components/ui/ReviewSummaryPanel';
+import { TabBar } from '../../components/ui/TabBar';
 import { FilterChips } from "./FilterChips";
 import { CriterionSection } from "./CriterionSection";
 import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
@@ -111,29 +113,21 @@ function StickyHeader({
 
         <div className="ml-auto shrink-0 flex items-center gap-2">
           {/* View toggle */}
-          <div className="flex items-center rounded-full border border-outline-variant/30 overflow-hidden text-[11px] font-semibold">
-            {(["report", "action_list"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => onViewChange(v)}
-                className={[
-                  "px-2.5 py-0.5 transition-colors",
-                  activeView === v
-                    ? "bg-primary text-white"
-                    : "text-on-surface-variant/60 hover:bg-surface-container",
-                ].join(" ")}
-              >
-                {v === "report" ? "Report" : "Action list"}
-              </button>
-            ))}
-          </div>
+          <TabBar
+            tabs={[
+              { id: 'report', label: 'Report' },
+              { id: 'action_list', label: 'Action list' },
+            ]}
+            activeId={activeView}
+            onChange={(id) => onViewChange(id as 'report' | 'action_list')}
+            className="border-none bg-transparent"
+          />
           {import.meta.env.DEV && onResetDemo && (
             <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               [Reset demo]
             </button>
           )}
-          <Button size="sm" variant="ghost" icon="download" onClick={onExportOpen}>Export</Button>
+          <Button size="sm" variant="secondary" icon="download" onClick={onExportOpen}>Export</Button>
         </div>
       </div>
 
