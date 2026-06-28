@@ -224,12 +224,8 @@ export function CriterionSection({
           <span className="text-xs font-mono text-on-surface-variant/70 flex-shrink-0 w-7">
             {criterionId}
           </span>
-          <span className="text-xs text-on-surface-variant/40 flex-shrink-0">·</span>
-          <span className="text-xs text-on-surface-variant/50 flex-shrink-0 hidden sm:block truncate max-w-[100px]">
-            {rubricName}
-          </span>
           <span className="text-on-surface-variant/40 flex-shrink-0">—</span>
-          <span className="text-base font-semibold text-primary truncate">
+          <span className="text-sm font-semibold text-primary truncate">
             {criterion.criterionTitle}
           </span>
         </div>

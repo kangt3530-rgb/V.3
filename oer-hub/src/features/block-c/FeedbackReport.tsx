@@ -44,10 +44,6 @@ function StickyHeader({
   report,
   responses,
   onExportOpen,
-  allNiHandled,
-  isReadOnly,
-  submittedAt,
-  onResetDemo,
   activeView,
   onViewChange,
   onScrollToCriterion,
@@ -55,49 +51,51 @@ function StickyHeader({
   report: IPerRubricReport;
   responses: ICriterionResponse[];
   onExportOpen: () => void;
-  allNiHandled: boolean;
-  isReadOnly: boolean;
-  submittedAt: string | null;
-  onResetDemo?: () => void;
   activeView: "report" | "action_list";
   onViewChange: (v: "report" | "action_list") => void;
   onScrollToCriterion: (criterionId: string) => void;
 }) {
   const criteria = report.criteria;
-  const attentionCount = criteria.filter(
-    (c) =>
-      (c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed") &&
-      statusFor(c, responses) === "unresolved"
-  ).length;
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: rubric name · status badge · view toggle · export */}
+      {/* Row 1: rubric name · criteria circles · view toggle · export */}
       <div className="flex items-center gap-3 min-w-0">
-        <p className="font-semibold text-sm text-primary shrink-0">{report.rubricName} Review</p>
+        <p className="text-base font-semibold text-primary shrink-0">{report.rubricName}</p>
 
-        {isReadOnly ? (
-          <span className="text-xs text-on-surface-variant/60 shrink-0 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">mail</span>
-            Submitted
-            {submittedAt && (
-              <> · {new Date(submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
-            )}
-          </span>
-        ) : allNiHandled ? (
-          <span className="text-xs text-emerald-600 shrink-0 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">check_circle</span>
-            All items addressed
-          </span>
-        ) : attentionCount > 0 ? (
-          <span className="text-xs font-semibold shrink-0" style={{ color: "var(--color-rating-dnm-text)" }}>
-            {attentionCount} need attention
-          </span>
-        ) : null}
+        {/* Criteria navigation circles */}
+        <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {report.freeNotes.length > 0 && (
+            <button
+              onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              title="Reviewer's General Comments"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              G
+            </button>
+          )}
+          {criteria.map((c, i) => {
+            const bg =
+              c.ratingSummary === "exceeds"   ? "#1a5c3a" :
+              c.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
+            return (
+              <button
+                key={c.criterionId}
+                onClick={() => onScrollToCriterion(c.criterionId)}
+                title={`${c.criterionId} · ${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: bg }}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
+        </div>
 
-        <div className="ml-auto shrink-0 flex items-center gap-3">
-          {/* View toggle — plain text tabs */}
-          <div className="flex items-center gap-0.5">
+        <div className="shrink-0 flex items-center gap-2">
+          {/* View toggle — pill style */}
+          <div className="flex items-center bg-surface-container-high rounded-full p-0.5">
             {(["report", "action_list"] as const).map((v) => {
               const label = v === "report" ? "Report" : "Action list";
               const active = activeView === v;
@@ -105,10 +103,10 @@ function StickyHeader({
                 <button
                   key={v}
                   onClick={() => onViewChange(v)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                  className={`px-3 py-1 text-sm rounded-full transition-colors ${
                     active
-                      ? "font-semibold text-primary border-b-2 border-primary"
-                      : "text-on-surface-variant/60 hover:text-primary"
+                      ? "bg-primary text-on-primary font-semibold"
+                      : "text-on-surface-variant/60 hover:text-on-surface-variant"
                   }`}
                 >
                   {label}
@@ -116,48 +114,12 @@ function StickyHeader({
               );
             })}
           </div>
-
-          {import.meta.env.DEV && onResetDemo && (
-            <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-              [Reset demo]
-            </button>
-          )}
           <Button size="sm" variant="secondary" icon="download" onClick={onExportOpen}>Export</Button>
         </div>
       </div>
 
       {/* Row 2: filter chips */}
       <FilterChips criteria={criteria} responses={responses} />
-
-      {/* Row 3: criteria navigation circles */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {report.freeNotes.length > 0 && (
-          <button
-            onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            title="Reviewer's General Comments"
-            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            G
-          </button>
-        )}
-        {criteria.map((c, i) => {
-          const bg =
-            c.ratingSummary === "exceeds"   ? "#1a5c3a" :
-            c.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
-          return (
-            <button
-              key={c.criterionId}
-              onClick={() => onScrollToCriterion(c.criterionId)}
-              title={`${c.criterionId} · ${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: bg }}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
@@ -373,20 +335,6 @@ export default function FeedbackReport() {
     );
   }
 
-  // Read submission date if submitted
-  const submittedAt = isReadOnly
-    ? (() => {
-        try {
-          const raw = localStorage.getItem(
-            `oer-hub:block-c:submission:${oerId}:${rubricId}`
-          );
-          return raw ? (JSON.parse(raw) as { submittedAt?: string }).submittedAt ?? null : null;
-        } catch {
-          return null;
-        }
-      })()
-    : null;
-
   const submitUrl = `/reports/${oerId}/${rubricId}/submit`;
   const effectiveOerWidth = oerPaneWidth;
 
@@ -438,10 +386,6 @@ export default function FeedbackReport() {
           report={report}
           responses={responses}
           onExportOpen={handleOpenExport}
-          allNiHandled={allNiHandled}
-          isReadOnly={isReadOnly ?? false}
-          submittedAt={submittedAt}
-          onResetDemo={handleResetDemo}
           activeView={activeView}
           onViewChange={setActiveView}
           onScrollToCriterion={handleScrollToCriterion}
