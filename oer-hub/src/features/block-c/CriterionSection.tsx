@@ -370,6 +370,10 @@ export function CriterionSection({
                       comment: kind === "annotation" ? item.comment : item.text,
                       selectedText: kind === "annotation" ? item.anchor?.selectedText : undefined,
                       tag: item.tag,
+                      annotationType: kind === "annotation" ? item.annotationType : undefined,
+                      screenshotUrl: kind === "annotation" ? item.screenshotUrl : undefined,
+                      pageLocation: kind === "annotation" ? item.pageLocation : undefined,
+                      taurusUrl: kind === "annotation" ? item.taurusUrl : undefined,
                     };
 
                     // freeNotes get a scroll-to-general-comments nav icon
