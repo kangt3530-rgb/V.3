@@ -189,6 +189,7 @@ export default function FeedbackReport() {
     reportScrollPending,
     clearReportScroll,
     setOerPaneWidth,
+    setLastSaved,
   } = useRevisionStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -326,6 +327,7 @@ export default function FeedbackReport() {
       const idx = prev.findIndex((r) => r.criterionId === saved.criterionId);
       return idx >= 0 ? prev.map((r, i) => (i === idx ? saved : r)) : [...prev, saved];
     });
+    setLastSaved(new Date().toISOString());
   }
 
   function handleItemResponseSaved(saved: IAuthorItemResponse) {
@@ -334,6 +336,7 @@ export default function FeedbackReport() {
       const idx = prev.findIndex((r) => r.annotationId === saved.annotationId);
       return idx >= 0 ? prev.map((r, i) => (i === idx ? saved : r)) : [...prev, saved];
     });
+    setLastSaved(new Date().toISOString());
   }
 
   if (loading) {
