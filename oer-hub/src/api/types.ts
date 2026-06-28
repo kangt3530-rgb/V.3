@@ -87,6 +87,14 @@ export interface IAnnotation {
   /** @deprecated Use tag instead. Kept for Block C backwards-compat. */
   polarity?: "positive" | "negative";
   createdAt: string;
+  /** When 'hotspot', the annotation targets an image/video/interactive element rather than text. Absent = treat as 'text'. */
+  annotationType?: 'text' | 'hotspot';
+  /** URL of a Taurus-captured screenshot (hotspot annotations only). */
+  screenshotUrl?: string;
+  /** Human-readable location, e.g. "Section 4.2 · p. 38" (hotspot annotations only). */
+  pageLocation?: string;
+  /** Deep-link back to this annotation in Taurus (hotspot annotations only). */
+  taurusUrl?: string;
 }
 
 export interface IFreeNote {
