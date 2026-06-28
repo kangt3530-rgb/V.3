@@ -23,13 +23,20 @@ import { OERPreviewPane } from "./OERPreviewPane";
 import { ExportPanel } from "./ExportPanel";
 import { ActionListView } from "./ActionListView";
 
-// ── Inline outcome dots for the compact header row ────────────────────────────
+// ── Rating dot colors & criterion nav ─────────────────────────────────────────
 
 const DOT_COLOR: Record<CriterionRatingSummary, string> = {
-  needs_improvement: "text-amber-500",
-  proficient:        "text-emerald-500",
-  exceeds:           "text-sky-500",
-  mixed:             "text-orange-500",
+  needs_improvement: "#ba1a1a",
+  proficient:        "#735c00",
+  exceeds:           "#1a5c3a",
+  mixed:             "#ba1a1a",
+};
+
+const DOT_TITLE: Record<CriterionRatingSummary, string> = {
+  needs_improvement: "Does Not Meet",
+  proficient:        "Exemplifies",
+  exceeds:           "Exceeds",
+  mixed:             "Mixed",
 };
 
 function statusFor(
@@ -51,6 +58,7 @@ function StickyHeader({
   onResetDemo,
   activeView,
   onViewChange,
+  onScrollToCriterion,
 }: {
   report: IPerRubricReport;
   responses: ICriterionResponse[];
@@ -61,10 +69,11 @@ function StickyHeader({
   onResetDemo?: () => void;
   activeView: "report" | "action_list";
   onViewChange: (v: "report" | "action_list") => void;
+  onScrollToCriterion: (criterionId: string) => void;
 }) {
   const criteria = report.criteria;
   const total = criteria.length;
-  const niCount = criteria.filter((c) => c.ratingSummary === "needs_improvement").length;
+  const niCount = criteria.filter((c) => c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed").length;
   const exceedsCount = criteria.filter((c) => c.ratingSummary === "exceeds").length;
   const proficientCount = criteria.filter((c) => c.ratingSummary === "proficient").length;
   const attentionCount = criteria.filter(
@@ -75,17 +84,10 @@ function StickyHeader({
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: name · dots · summary · CTA · export */}
+      {/* Row 1: rubric name · counts · status · view toggle · export */}
       <div className="flex items-center gap-2 min-w-0">
         <p className="font-semibold text-sm text-primary shrink-0">{report.rubricName} Review</p>
         <span className="text-outline-variant/60 shrink-0">·</span>
-        <span className="flex items-center gap-px shrink-0">
-          {criteria.map((c) => (
-            <span key={c.criterionId} className={`text-[10px] leading-none ${DOT_COLOR[c.ratingSummary]}`}>
-              ●
-            </span>
-          ))}
-        </span>
         <span className="text-xs text-on-surface-variant truncate">
           {proficientCount}/{total} proficient
           {niCount > 0 && <> · {niCount} NI</>}
@@ -106,13 +108,12 @@ function StickyHeader({
             All items addressed
           </span>
         ) : attentionCount > 0 ? (
-          <span className="text-xs text-amber-600 shrink-0 ml-1">
+          <span className="text-xs font-semibold shrink-0 ml-1" style={{ color: "var(--color-rating-dnm-text)" }}>
             {attentionCount} need attention
           </span>
         ) : null}
 
         <div className="ml-auto shrink-0 flex items-center gap-2">
-          {/* View toggle */}
           <TabBar
             tabs={[
               { id: 'report', label: 'Report' },
@@ -133,6 +134,26 @@ function StickyHeader({
 
       {/* Row 2: filter chips */}
       <FilterChips criteria={criteria} responses={responses} />
+
+      {/* Row 3: criteria navigation */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {criteria.map((c, i) => (
+          <button
+            key={c.criterionId}
+            onClick={() => onScrollToCriterion(c.criterionId)}
+            title={`${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-on-surface-variant/70 hover:bg-surface-container-high hover:text-primary transition-colors shrink-0 whitespace-nowrap"
+          >
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ backgroundColor: DOT_COLOR[c.ratingSummary] }}
+            />
+            <span className="font-mono font-semibold text-[10px]">{c.criterionId}</span>
+            <span className="hidden sm:inline truncate max-w-[120px]">{c.criterionTitle}</span>
+            {i < criteria.length - 1 && <span className="text-outline-variant/30 ml-1">·</span>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -244,6 +265,13 @@ export default function FeedbackReport() {
     }, 150);
     return () => clearTimeout(t);
   }, [viewingAnnotationId, reportScrollPending, report, collapsedCriteria, toggleCriterionCollapse, clearReportScroll]);
+
+  function handleScrollToCriterion(criterionId: string) {
+    if (collapsedCriteria.includes(criterionId)) toggleCriterionCollapse(criterionId);
+    setTimeout(() => {
+      document.getElementById(`criterion-${criterionId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }
 
   // Keyboard navigation for OER pane
   useEffect(() => {
@@ -412,6 +440,7 @@ export default function FeedbackReport() {
           onResetDemo={handleResetDemo}
           activeView={activeView}
           onViewChange={setActiveView}
+          onScrollToCriterion={handleScrollToCriterion}
         />
         {activeView === "action_list" ? (
           <ActionListView
