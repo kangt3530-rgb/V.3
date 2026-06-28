@@ -11,7 +11,6 @@ import type {
   CriterionRatingSummary,
 } from "../../api/types";
 import { getPerRubricReport, getCriterionResponses, getItemResponses, upsertItemResponse } from "../../api";
-import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
 import { ReviewSummaryPanel as _ReviewSummaryPanel } from '../../components/ui/ReviewSummaryPanel';
@@ -30,13 +29,6 @@ const DOT_TITLE: Record<CriterionRatingSummary, string> = {
   exceeds:           "Exceeds",
   mixed:             "Mixed",
 };
-
-function statusFor(
-  c: IAggregatedCriterionFeedback,
-  responses: ICriterionResponse[]
-): RevisionStatus {
-  return responses.find((r) => r.criterionId === c.criterionId)?.status ?? "unresolved";
-}
 
 // ── Sticky header ─────────────────────────────────────────────────────────────
 
@@ -280,17 +272,6 @@ export default function FeedbackReport() {
       return ratingOk && statusOk;
     });
   }, [report, responses, activeRatingFilters, activeStatusFilters]);
-
-  function handleResetDemo() {
-    if (!oerId || !rubricId) return;
-    localStorage.removeItem(`oer-hub:block-c:responses:${oerId}:${rubricId}`);
-    localStorage.removeItem(`oer-hub:block-c:submission:${oerId}:${rubricId}`);
-    localStorage.removeItem("oer-hub:block-c:revision-store");
-    // Also clear the reviewer session so the new demo seed data is used on reload
-    localStorage.removeItem("oer-hub:session:v3:task-001");
-    clearOerStatusOverride(oerId);
-    window.location.reload();
-  }
 
   function handleOpenExport() {
     setExportPanelOpen(true);

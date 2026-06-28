@@ -11,8 +11,8 @@ import { EvidenceCard } from '../../components/ui/EvidenceCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { RubricDefinitionModal } from "./RubricDefinitionModal";
 import { StatusPillGroup } from "./StatusPillGroup";
-import { CriterionFilterPills } from "./CriterionFilterPills";
 import { CriterionProgressIndicator } from "./CriterionProgressIndicator";
+import { getCriterionDefinition } from "../../data/rubric-md";
 
 interface CriterionSectionProps {
   criterion: IAggregatedCriterionFeedback;
@@ -53,17 +53,22 @@ function toStatusBadgeVariant(summary: string): 'does_not_meet' | 'exemplifies' 
   return 'does_not_meet'
 }
 
-// Shared section label style
-const SECTION_LABEL = "text-xs font-semibold tracking-widest uppercase text-gray-400";
-// Shared author input style
+function overallCommentBg(displayRating: string): string {
+  if (displayRating === 'exceeds') return 'bg-green-50 border-green-200';
+  if (displayRating === 'proficient') return 'bg-amber-50 border-amber-200';
+  return 'bg-red-50 border-red-200';
+}
+
 const AUTHOR_INPUT =
   "w-full rounded-md border border-outline-variant bg-white px-3 py-2 text-sm text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none transition-colors";
+
+const LETTER_LABELS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
 
 export function CriterionSection({
   criterion,
   freeNotes,
   response,
-  rubricName,
+  rubricName: _rubricName,
   isCollapsed,
   onToggleCollapse,
   onViewAnnotation,
@@ -80,7 +85,7 @@ export function CriterionSection({
   const [definitionModalOpen, setDefinitionModalOpen] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
-  const [filterTab, setFilterTab] = useState<"all" | "actionable" | "notes">("all");
+  const [rubricContentExpanded, setRubricContentExpanded] = useState(false);
   const [expandedRevNotes, setExpandedRevNotes] = useState<Set<string>>(new Set());
   const [overallLogExpanded, setOverallLogExpanded] = useState(() => (response?.revisionLog ?? "").trim().length > 0);
   const [autoResolveOptedOut, setAutoResolveOptedOut] = useState(false);
@@ -154,19 +159,12 @@ export function CriterionSection({
     return td !== 0 ? td : a.item.createdAt.localeCompare(b.item.createdAt);
   });
 
-  const actionableCount = unifiedItems.filter((u) => u.item.tag === "action_item" || u.item.tag === "quick_fix").length;
-  const notesCount = unifiedItems.filter((u) => u.item.tag === null).length;
-
-  const filteredItems = unifiedItems.filter((u) => {
-    if (filterTab === "actionable") return u.item.tag === "action_item" || u.item.tag === "quick_fix";
-    if (filterTab === "notes") return u.item.tag === null;
-    return true;
-  });
-
   const handledCount = unifiedItems.filter((u) => {
     const r = itemResponses.find((r) => r.annotationId === u.item.id);
     return r?.itemStatus != null;
   }).length;
+
+  const unaddressedCount = unifiedItems.length - handledCount;
 
   function handleRevNoteChange(itemId: string, value: string, existing: IAuthorItemResponse | undefined) {
     const base: IAuthorItemResponse = existing ?? {
@@ -205,6 +203,9 @@ export function CriterionSection({
     currentStatus === "resolved" &&
     (draft.markResolvedAutoFilled ?? response?.markResolvedAutoFilled ?? false);
 
+  const criterionDef = getCriterionDefinition(criterion.rubricTemplateId, criterionId);
+  const standards = criterionDef?.standards ?? [];
+
   return (
     <div id={`criterion-${criterion.criterionId}`} className="border border-outline-variant/20 border-l-2 border-l-outline-variant/40 rounded-r-lg overflow-hidden bg-surface-container-lowest">
       {/* ── Section header ── */}
@@ -221,13 +222,14 @@ export function CriterionSection({
           >
             expand_more
           </span>
-          <span className="text-xs font-mono text-on-surface-variant/70 flex-shrink-0 w-7">
-            {criterionId}
-          </span>
-          <span className="text-on-surface-variant/40 flex-shrink-0">—</span>
           <span className="text-sm font-semibold text-primary truncate">
-            {criterion.criterionTitle}
+            {criterionId}. {criterion.criterionTitle}
           </span>
+          {unaddressedCount > 0 && (
+            <span className="flex-shrink-0 px-1.5 py-0.5 bg-secondary-container text-secondary rounded-full text-[11px] font-semibold leading-none">
+              {unaddressedCount}
+            </span>
+          )}
         </div>
         <div className="flex-shrink-0 ml-3 flex items-center gap-2">
           <CriterionProgressIndicator handled={handledCount} total={unifiedItems.length} />
@@ -246,44 +248,61 @@ export function CriterionSection({
       {!isCollapsed && (
         <div className="px-4 pb-4 space-y-4 border-t border-outline-variant/15">
 
-          {/* Block 1: About this criterion */}
-          <div className="mt-3 bg-surface-container-low rounded-md p-3 space-y-1.5">
-            <p className={SECTION_LABEL}>About this criterion</p>
-            <p className="text-sm text-on-surface leading-relaxed">
-              {criterion.criterionStandard}
-            </p>
-            <div className="flex gap-4 text-xs text-on-surface-variant/60 mt-0.5">
-              <button onClick={() => setDefinitionModalOpen(true)} className="hover:text-primary transition-colors">Read full definition</button>
-            </div>
-          </div>
-
-          {/* Block 2: Reviewer's overall comment */}
+          {/* Block 1: Reviewer's overall comment — sticky, prominent, rating-colored */}
           {criterion.overallComment && (
-            <div className="space-y-1.5">
-              <p className={SECTION_LABEL}>Reviewer&rsquo;s Overall Comment</p>
-              <div className="bg-amber-50/70 rounded-md p-3 border-l-2 border-amber-300">
-                <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
-                  {criterion.overallComment}
-                </p>
-              </div>
+            <div className={`mt-3 rounded-md p-3 border-l-2 ${overallCommentBg(displayRating)}`}>
+              <p className="text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                {criterion.overallComment}
+              </p>
             </div>
           )}
 
-          {/* Block 3: Unified annotations + linked free notes */}
+          {/* Block 2: Rubric content — collapsible, lettered sub-criteria */}
+          <div className="border border-outline-variant/15 rounded-md overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setRubricContentExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-surface-container-low hover:bg-surface-container-low/80 transition-colors text-left select-none"
+            >
+              <span className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+                Rubric content
+              </span>
+              <span
+                className="material-symbols-outlined text-on-surface-variant/50 text-sm transition-transform duration-200"
+                style={{ transform: rubricContentExpanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+              >
+                expand_more
+              </span>
+            </button>
+            {rubricContentExpanded && standards.length > 0 && (
+              <div className="px-3 py-2.5 space-y-1.5 bg-surface-container-lowest">
+                {standards.map((s, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="flex-shrink-0 text-xs font-semibold text-on-surface-variant/50 w-4 text-right">
+                      {LETTER_LABELS[i] ?? String(i + 1)}.
+                    </span>
+                    <p className="text-xs text-on-surface leading-relaxed">{s}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {rubricContentExpanded && standards.length === 0 && (
+              <div className="px-3 py-2.5">
+                <p className="text-xs text-on-surface-variant/60 italic">{criterion.criterionStandard}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Block 3: Annotations */}
           {unifiedItems.length > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <p className={SECTION_LABEL}>Annotations ({unifiedItems.length})</p>
-                <CriterionFilterPills
-                  total={unifiedItems.length}
-                  actionableCount={actionableCount}
-                  notesCount={notesCount}
-                  active={filterTab}
-                  onChange={setFilterTab}
-                />
+                <p className="text-xs font-semibold tracking-widest uppercase text-gray-400">
+                  Annotations ({unifiedItems.length})
+                </p>
               </div>
               <div className="space-y-2">
-                {filteredItems.map(({ kind, item }) => {
+                {unifiedItems.map(({ kind, item }) => {
                   const otherCriteria = kind === "annotation"
                     ? (item.criterionIds ?? []).filter((id) => id !== criterionId)
                     : [];
@@ -325,13 +344,13 @@ export function CriterionSection({
                           ↗ View source
                         </button>
                       )}
-                      {/* Inline revision note + status pill */}
+                      {/* Inline revision log + status pill */}
                       <div className="px-3 pb-2 pt-1 flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {isExpanded ? (
                             <textarea
                               rows={2}
-                              placeholder="Note how you addressed this..."
+                              placeholder="How you addressed this…"
                               defaultValue={savedNote}
                               onChange={(e) => handleRevNoteChange(item.id, e.target.value, existingResponse)}
                               onBlur={(e) => {
@@ -354,7 +373,7 @@ export function CriterionSection({
                               }
                               className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
                             >
-                              + Add revision note
+                              + Revision log review
                             </button>
                           )}
                         </div>
@@ -376,11 +395,6 @@ export function CriterionSection({
                     </div>
                   );
                 })}
-                {filteredItems.length === 0 && (
-                  <p className="text-xs text-on-surface-variant/50 py-1 pl-1">
-                    No {filterTab === "actionable" ? "actionable" : "untagged"} items.
-                  </p>
-                )}
               </div>
             </div>
           )}
@@ -398,7 +412,7 @@ export function CriterionSection({
                 </button>
               ) : (
                 <>
-                  <p className={SECTION_LABEL}>Revision Log</p>
+                  <p className="text-xs font-semibold tracking-widest uppercase text-gray-400">Revision Log</p>
                   <textarea
                     rows={3}
                     placeholder="Leave any notes about your revisions or thoughts on this feedback..."
@@ -418,23 +432,34 @@ export function CriterionSection({
           {/* Block 5: Mark resolved (NI and Mixed only) */}
           {isNI && (
             <div className="pt-3 border-t border-outline-variant/15 space-y-2">
-              <div className="flex justify-end items-center gap-3">
+              <div className="flex justify-between items-center gap-3">
                 {autoFillActive && (
                   <span className="text-xs text-emerald-600 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[13px]">check_circle</span>
                     All actionable items handled
                   </span>
                 )}
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-on-surface-variant/70 select-none">
-                  <input
-                    type="checkbox"
-                    checked={currentStatus === "resolved"}
-                    onChange={(e) => handleToggleResolved(e.target.checked)}
-                    disabled={isReadOnly}
-                    className={`rounded border-outline-variant accent-primary w-3.5 h-3.5 ${isReadOnly ? "cursor-not-allowed opacity-60" : ""}`}
-                  />
-                  Mark resolved
-                </label>
+                <div className="flex items-center gap-3 ml-auto">
+                  {/* ✱ button — full rubric with glossary */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setDefinitionModalOpen(true); }}
+                    title="View full rubric with glossary"
+                    className="text-sm text-on-surface-variant/40 hover:text-primary transition-colors"
+                  >
+                    ✱
+                  </button>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-on-surface-variant/70 select-none">
+                    <input
+                      type="checkbox"
+                      checked={currentStatus === "resolved"}
+                      onChange={(e) => handleToggleResolved(e.target.checked)}
+                      disabled={isReadOnly}
+                      className={`rounded border-outline-variant accent-primary w-3.5 h-3.5 ${isReadOnly ? "cursor-not-allowed opacity-60" : ""}`}
+                    />
+                    Mark resolved
+                  </label>
+                </div>
               </div>
               {showNudge && !nudgeDismissed && (
                 <div className="bg-amber-50 rounded-md px-3 py-2 text-xs text-amber-800 flex items-start gap-2">
@@ -450,6 +475,20 @@ export function CriterionSection({
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ✱ button for non-NI criteria */}
+          {!isNI && (
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setDefinitionModalOpen(true)}
+                title="View full rubric with glossary"
+                className="text-sm text-on-surface-variant/40 hover:text-primary transition-colors"
+              >
+                ✱
+              </button>
             </div>
           )}
         </div>

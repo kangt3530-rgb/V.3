@@ -23,6 +23,10 @@ export function ReviewerGeneralComments({
   const unlinkedNotes = freeNotes.filter((n) => (n.criterionIds ?? []).length === 0);
   if (unlinkedNotes.length === 0) return null;
 
+  const unaddressedCount = unlinkedNotes.filter(
+    (n) => (itemResponses.find((r) => r.annotationId === n.id)?.itemStatus ?? null) === null
+  ).length;
+
   return (
     <div id="reviewer-general-comments" className="border border-outline-variant/20 border-l-2 border-l-secondary/40 rounded-r-lg overflow-hidden bg-surface-container-lowest mb-4">
       {/* Header */}
@@ -39,10 +43,12 @@ export function ReviewerGeneralComments({
           >
             expand_more
           </span>
-          <span className="text-sm font-semibold text-primary">Reviewer's General Comments</span>
-          <span className="px-1.5 py-0.5 bg-secondary-container text-secondary rounded-full text-[11px] font-semibold leading-none">
-            {unlinkedNotes.length}
-          </span>
+          <span className="text-sm font-semibold text-primary">General Comments</span>
+          {unaddressedCount > 0 && (
+            <span className="px-1.5 py-0.5 bg-secondary-container text-secondary rounded-full text-[11px] font-semibold leading-none">
+              {unaddressedCount}
+            </span>
+          )}
         </div>
       </div>
 
@@ -63,12 +69,12 @@ export function ReviewerGeneralComments({
                     {tagCfg && (
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`material-symbols-outlined text-[14px] flex-shrink-0 ${tagCfg.cls}`}
+                          className={`material-symbols-outlined text-[15px] flex-shrink-0 ${tagCfg.cls}`}
                           style={{ fontVariationSettings: "'FILL' 1" }}
                         >
                           {tagCfg.icon}
                         </span>
-                        <span className="text-xs font-medium text-on-surface-variant/70">
+                        <span className="text-xs font-semibold text-on-surface-variant/80">
                           {tagCfg.label}
                         </span>
                       </div>
