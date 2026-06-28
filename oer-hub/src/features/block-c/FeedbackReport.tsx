@@ -58,12 +58,8 @@ function CriterionDot({
       </button>
       {/* Tooltip */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/dot:block z-50 pointer-events-none">
-        <div
-          className="rounded-md px-2.5 py-1.5 text-white shadow-lg whitespace-nowrap text-left"
-          style={{ backgroundColor: bg }}
-        >
-          <p className="text-[11px] font-semibold">{criterion.criterionId} · {criterion.criterionTitle}</p>
-          <p className="text-[10px] opacity-80 mt-0.5">{ratingLabel}</p>
+        <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap text-left">
+          <p className="text-[11px] font-semibold">{criterion.criterionId} · {criterion.criterionTitle} — {ratingLabel}</p>
         </div>
         {/* Arrow */}
         <div
@@ -71,7 +67,7 @@ function CriterionDot({
           style={{
             borderLeft: "5px solid transparent",
             borderRight: "5px solid transparent",
-            borderTop: `5px solid ${bg}`,
+            borderTop: "5px solid #171717",
           }}
         />
       </div>
