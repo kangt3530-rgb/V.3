@@ -1,6 +1,7 @@
 import type { IAuthorItemResponse, IFreeNote, RubricTemplateId } from "../../api/types";
 import { useRevisionStore } from "../../store/revisionStore";
 import { AnnotationRow } from "./CriterionSection";
+import { CriterionProgressIndicator } from "./CriterionProgressIndicator";
 
 interface ReviewerGeneralCommentsProps {
   freeNotes: IFreeNote[];
@@ -22,8 +23,8 @@ export function ReviewerGeneralComments({
   const unlinkedNotes = freeNotes.filter((n) => (n.criterionIds ?? []).length === 0);
   if (unlinkedNotes.length === 0) return null;
 
-  const unaddressedCount = unlinkedNotes.filter(
-    (n) => (itemResponses.find((r) => r.annotationId === n.id)?.itemStatus ?? null) === null
+  const handledCount = unlinkedNotes.filter(
+    (n) => (itemResponses.find((r) => r.annotationId === n.id)?.itemStatus ?? null) !== null
   ).length;
 
   return (
@@ -36,7 +37,7 @@ export function ReviewerGeneralComments({
         role="button"
         aria-expanded={!generalCommentsCollapsed}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span
             className="material-symbols-outlined text-on-surface-variant/60 text-sm flex-shrink-0 transition-transform duration-200"
             style={{ transform: generalCommentsCollapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
@@ -44,11 +45,9 @@ export function ReviewerGeneralComments({
             expand_more
           </span>
           <span className="text-sm font-semibold text-primary">General Comments</span>
-          {unaddressedCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-secondary-container text-secondary rounded-full text-[11px] font-semibold leading-none">
-              {unaddressedCount}
-            </span>
-          )}
+        </div>
+        <div className="flex-shrink-0 ml-3">
+          <CriterionProgressIndicator handled={handledCount} total={unlinkedNotes.length} />
         </div>
       </div>
 

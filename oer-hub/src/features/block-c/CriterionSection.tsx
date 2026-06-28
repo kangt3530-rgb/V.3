@@ -231,8 +231,6 @@ export function CriterionSection({
     return r?.itemStatus != null;
   }).length;
 
-  const unaddressedCount = unifiedItems.length - handledCount;
-
   const actionableItems = unifiedItems.filter((u) => u.item.tag === "action_item" || u.item.tag === "quick_fix");
   const allActionableHandled =
     actionableItems.length > 0 &&
@@ -277,11 +275,6 @@ export function CriterionSection({
           <span className="text-sm font-semibold text-primary truncate">
             {criterionId}. {criterion.criterionTitle}
           </span>
-          {unaddressedCount > 0 && (
-            <span className="flex-shrink-0 px-1.5 py-0.5 bg-secondary-container text-secondary rounded-full text-[11px] font-semibold leading-none">
-              {unaddressedCount}
-            </span>
-          )}
         </div>
         <div className="flex-shrink-0 ml-3 flex items-center gap-2">
           <CriterionProgressIndicator handled={handledCount} total={unifiedItems.length} />
