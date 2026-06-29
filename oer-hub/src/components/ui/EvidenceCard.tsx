@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ')
@@ -12,7 +13,8 @@ export interface EvidenceCardAnnotation {
   annotationType?: 'text' | 'hotspot'
   screenshotUrl?: string
   pageLocation?: string
-  taurusUrl?: string
+  torusUrl?: string
+  screenshots?: Array<{ url: string; pageLocation?: string; torusUrl?: string }>
 }
 
 interface EvidenceCardProps {
@@ -35,16 +37,79 @@ const TAG_CONFIG: Record<'action_item' | 'quick_fix', { icon: string; label: str
   },
 }
 
+function Lightbox({ url, pageLocation, torusUrl, onClose }: {
+  url: string
+  pageLocation?: string
+  torusUrl?: string
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-hidden shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <img
+          src={url}
+          alt="Screenshot"
+          className="block max-w-[90vw] max-h-[85vh] object-contain bg-gray-900"
+        />
+        {/* Bottom bar */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-2 bg-black/60 backdrop-blur-sm">
+          <span className="text-white/80 text-xs flex items-center gap-1">
+            <span className="material-symbols-outlined text-[12px]">location_on</span>
+            {pageLocation ?? ''}
+          </span>
+          <button
+            onClick={() => torusUrl ? window.open(torusUrl, '_blank') : undefined}
+            className={cx(
+              'flex items-center gap-1 text-xs px-2.5 py-1 rounded-md transition-colors',
+              torusUrl
+                ? 'bg-white/20 text-white hover:bg-white/30'
+                : 'bg-white/10 text-white/40 cursor-default'
+            )}
+          >
+            <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+            Open in Torus
+          </button>
+        </div>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export function EvidenceCard({ annotation, className, onGoToAnnotation, footer }: EvidenceCardProps) {
   const tag = (annotation.tag === 'action_item' || annotation.tag === 'quick_fix') ? annotation.tag : null
 
   const isHotspot = annotation.annotationType === 'hotspot'
-  const screenshots = isHotspot && annotation.screenshotUrl !== undefined
-    ? [{ url: annotation.screenshotUrl ?? '', pageLocation: annotation.pageLocation, taurusUrl: annotation.taurusUrl }]
+  const screenshots = isHotspot
+    ? (annotation.screenshots && annotation.screenshots.length > 0
+        ? annotation.screenshots
+        : annotation.screenshotUrl !== undefined
+          ? [{ url: annotation.screenshotUrl, pageLocation: annotation.pageLocation, torusUrl: annotation.torusUrl }]
+          : [])
     : []
   const hasScreenshots = screenshots.length > 0
 
   const [selectedIdx, setSelectedIdx] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   useEffect(() => { setSelectedIdx(0) }, [annotation.id])
 
   const selected = screenshots[selectedIdx] ?? null
@@ -72,35 +137,43 @@ export function EvidenceCard({ annotation, className, onGoToAnnotation, footer }
       {/* Hotspot layout: expanded preview + optional thumbnail strip */}
       {isHotspot && hasScreenshots ? (
         <>
-          {/* Expanded preview */}
-          <div className="w-full h-[140px] rounded-md overflow-hidden mb-2 relative bg-[var(--color-surface-container-low)]">
+          {/* Expanded preview — full-bleed width, clickable to open lightbox */}
+          <div className="-mx-3 h-[200px] overflow-hidden relative bg-[var(--color-surface-container-low)] group">
             {selected?.url ? (
-              <img src={selected.url} className="w-full h-full object-cover" alt="Annotation screenshot" />
+              <img
+                src={selected.url}
+                className="w-full h-full object-cover cursor-zoom-in"
+                alt="Annotation screenshot"
+                onClick={() => setLightboxOpen(true)}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <span className="material-symbols-outlined text-gray-400 text-3xl">image</span>
               </div>
             )}
-            {selected?.pageLocation && (
-              <span className="absolute bottom-2 left-2 text-[10px] bg-white/80 text-gray-600 px-1.5 py-0.5 rounded">
-                <span className="material-symbols-outlined text-[10px] align-middle mr-0.5">location_on</span>
-                {selected.pageLocation}
-              </span>
-            )}
-            {selected?.taurusUrl && (
-              <button
-                onClick={() => window.open(selected!.taurusUrl, '_blank')}
-                className="absolute bottom-2 right-2 text-[10px] bg-white/80 text-blue-600 px-1.5 py-0.5 rounded hover:bg-white"
-              >
-                Open in Taurus
-                <span className="material-symbols-outlined text-[10px] align-middle ml-0.5">open_in_new</span>
-              </button>
-            )}
+            {/* Location badge */}
+            <span className="absolute bottom-2 left-2 text-[10px] bg-black/50 text-white/90 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+              <span className="material-symbols-outlined text-[10px]">location_on</span>
+              {selected?.pageLocation ?? '—'}
+            </span>
+            {/* Open in Torus — always shown */}
+            <button
+              onClick={() => selected?.torusUrl ? window.open(selected.torusUrl, '_blank') : undefined}
+              className={cx(
+                'absolute bottom-2 right-2 flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded transition-colors',
+                selected?.torusUrl
+                  ? 'bg-white/80 text-blue-600 hover:bg-white hover:underline'
+                  : 'bg-white/40 text-gray-400 cursor-default'
+              )}
+            >
+              Open in Torus
+              <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+            </button>
           </div>
 
           {/* Thumbnail strip — only when 2+ screenshots */}
           {screenshots.length >= 2 && (
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            <div className="-mx-3 flex gap-2 overflow-x-auto pb-1 px-3">
               {screenshots.map((s, i) => (
                 <button
                   key={i}
@@ -127,6 +200,16 @@ export function EvidenceCard({ annotation, className, onGoToAnnotation, footer }
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Lightbox */}
+          {lightboxOpen && selected?.url && (
+            <Lightbox
+              url={selected.url}
+              pageLocation={selected.pageLocation}
+              torusUrl={selected.torusUrl}
+              onClose={() => setLightboxOpen(false)}
+            />
           )}
         </>
       ) : (
@@ -156,7 +239,6 @@ export function EvidenceCard({ annotation, className, onGoToAnnotation, footer }
       {/* Reviewer comment */}
       <p className="text-body-sm text-[var(--color-text-primary)] leading-relaxed break-words hyphens-auto">
         {annotation.comment}
-        {/* For text annotations without selectedText, show nav icon inline */}
         {!isHotspot && !annotation.selectedText && onGoToAnnotation && (
           <button
             type="button"

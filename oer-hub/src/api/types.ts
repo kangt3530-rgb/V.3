@@ -89,12 +89,14 @@ export interface IAnnotation {
   createdAt: string;
   /** When 'hotspot', the annotation targets an image/video/interactive element rather than text. Absent = treat as 'text'. */
   annotationType?: 'text' | 'hotspot';
-  /** URL of a Taurus-captured screenshot (hotspot annotations only). */
+  /** URL of a Torus-captured screenshot (hotspot annotations only). */
   screenshotUrl?: string;
   /** Human-readable location, e.g. "Section 4.2 · p. 38" (hotspot annotations only). */
   pageLocation?: string;
-  /** Deep-link back to this annotation in Taurus (hotspot annotations only). */
-  taurusUrl?: string;
+  /** Deep-link back to this annotation in Torus (hotspot annotations only). */
+  torusUrl?: string;
+  /** Multiple screenshots for a single hotspot annotation. When present, overrides screenshotUrl. */
+  screenshots?: Array<{ url: string; pageLocation?: string; torusUrl?: string }>;
 }
 
 export interface IFreeNote {

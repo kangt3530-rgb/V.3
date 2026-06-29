@@ -336,23 +336,64 @@ function demoSessionForOer001(): IReviewSession {
           rects: [],
         },
       },
-      // C1 — hotspot annotation (exercises thumbnail strip layout)
+      // C1 — hotspot: single screenshot (no Torus URL — shows disabled state)
       {
         id: "ann-hotspot-demo-001",
         taskId: "task-001",
         criterionIds: ["C1"],
         tag: "action_item",
         annotationType: "hotspot",
-        screenshotUrl: "",
-        pageLocation: "Section 4.2 · p. 38",
-        taurusUrl: "",
-        comment: "This embedded simulation has no keyboard fallback and cannot be navigated without a mouse. A static alternative or transcript is required.",
+        screenshotUrl: "/placeholders/oer-quiz-1.svg",
+        pageLocation: "Why OER Matters · p. 3",
+        torusUrl: "",
+        comment: "The 'Did I Get This?' section header has no landmark role. Screen readers bypass it entirely when navigating by region.",
         createdAt: "2026-03-22T11:05:30Z",
-        anchor: {
-          type: "web",
-          selectedText: "",
-          rects: [],
-        },
+        anchor: { type: "web", selectedText: "", rects: [] },
+      },
+      // C1 — hotspot: single screenshot, second separate card
+      {
+        id: "ann-hotspot-quiz-2",
+        taskId: "task-001",
+        criterionIds: ["C1"],
+        tag: "quick_fix",
+        annotationType: "hotspot",
+        screenshotUrl: "/placeholders/oer-quiz-2.svg",
+        pageLocation: "Why OER Matters · Question 2",
+        torusUrl: "",
+        comment: "Radio button group lacks a fieldset and legend. AT users cannot determine which question the options belong to.",
+        createdAt: "2026-03-23T09:15:00Z",
+        anchor: { type: "web", selectedText: "", rects: [] },
+      },
+      // C1 — hotspot: three screenshots sharing one annotation (exercises full thumbnail strip)
+      {
+        id: "ann-hotspot-quiz-multi",
+        taskId: "task-001",
+        criterionIds: ["C1"],
+        tag: "action_item",
+        annotationType: "hotspot",
+        screenshotUrl: "",
+        screenshots: [
+          {
+            url: "/placeholders/oer-quiz-1.svg",
+            pageLocation: "Why OER Matters · Q1",
+            torusUrl: "https://torus.example.com/annotation/1",
+          },
+          {
+            url: "/placeholders/oer-quiz-2.svg",
+            pageLocation: "Why OER Matters · Q2",
+            torusUrl: "https://torus.example.com/annotation/2",
+          },
+          {
+            url: "/placeholders/oer-quiz-3.svg",
+            pageLocation: "Why OER Matters · Q3",
+            torusUrl: "https://torus.example.com/annotation/3",
+          },
+        ],
+        pageLocation: "Why OER Matters · p. 3",
+        torusUrl: "",
+        comment: "All three quiz questions share this issue: radio inputs have no fieldset grouping across the entire Did I Get This? block. Fix once, applies to all questions.",
+        createdAt: "2026-03-23T09:20:00Z",
+        anchor: { type: "web", selectedText: "", rects: [] },
       },
       // C2 — proficient (1 annotation, general_feedback — exercises "no To-Do List" case)
       {

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="520" viewBox="0 0 900 520">
+  <rect width="900" height="520" fill="#f0f2f5"/>
+  <!-- Page text above -->
+  <rect x="40" y="20" width="560" height="14" rx="3" fill="#9aa0a8" opacity="0.6"/>
+  <rect x="40" y="42" width="420" height="14" rx="3" fill="#9aa0a8" opacity="0.5"/>
+  <rect x="40" y="64" width="480" height="14" rx="3" fill="#9aa0a8" opacity="0.6"/>
+  <rect x="40" y="86" width="300" height="14" rx="3" fill="#9aa0a8" opacity="0.5"/>
+
+  <!-- "DID I GET THIS?" header box -->
+  <rect x="40" y="118" width="820" height="52" rx="4" fill="#d8dce2"/>
+  <text x="68" y="150" font-family="Georgia, serif" font-size="18" font-weight="bold" fill="#1f2937">? DID I GET THIS?</text>
+
+  <!-- Quiz card -->
+  <rect x="40" y="180" width="820" height="310" rx="6" fill="white" stroke="#e2e4e8" stroke-width="1"/>
+
+  <!-- Question 1 -->
+  <text x="70" y="222" font-family="-apple-system, sans-serif" font-size="15" fill="#111827">Which statement best explains why OER matters?</text>
+
+  <!-- Option A -->
+  <circle cx="85" cy="255" r="8" fill="white" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="102" y="260" font-family="-apple-system, sans-serif" font-size="14" fill="#374151">OER are always high quality because they are free.</text>
+
+  <!-- Option B -->
+  <circle cx="85" cy="289" r="8" fill="white" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="102" y="294" font-family="-apple-system, sans-serif" font-size="14" fill="#374151">OER can increase access, reduce costs, and allow materials to be adapted</text>
+  <text x="102" y="312" font-family="-apple-system, sans-serif" font-size="14" fill="#374151">for different learning contexts.</text>
+
+  <!-- Option C -->
+  <circle cx="85" cy="338" r="8" fill="white" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="102" y="343" font-family="-apple-system, sans-serif" font-size="14" fill="#374151">OER should not be reviewed because they are openly licensed.</text>
+
+  <!-- Option D -->
+  <circle cx="85" cy="372" r="8" fill="white" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="102" y="377" font-family="-apple-system, sans-serif" font-size="14" fill="#374151">OER are only useful when they come from a well-known organization.</text>
+
+  <!-- Divider -->
+  <line x1="70" y1="405" x2="830" y2="405" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- Question 2 label -->
+  <text x="70" y="432" font-family="-apple-system, sans-serif" font-size="15" fill="#111827">An instructor says, "This resource is openly licensed, so we do not</text>
+  <text x="70" y="453" font-family="-apple-system, sans-serif" font-size="15" fill="#111827">need to review its quality."</text>
+  <text x="70" y="478" font-family="-apple-system, sans-serif" font-size="15" fill="#111827">What is the best response?</text>
+</svg>

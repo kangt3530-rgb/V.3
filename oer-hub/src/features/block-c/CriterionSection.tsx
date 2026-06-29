@@ -258,9 +258,9 @@ export function CriterionSection({
   return (
     // NOTE: no overflow-hidden here — it would break position:sticky on the inner sticky panel
     <div id={`criterion-${criterion.criterionId}`} className="border border-outline-variant/20 border-l-2 border-l-outline-variant/40 rounded-r-lg bg-surface-container-lowest">
-      {/* ── Collapsible header ── */}
+      {/* ── Collapsible header — sticky so title stays visible while scrolling through annotations ── */}
       <div
-        className="flex items-center justify-between cursor-pointer px-4 py-3 select-none hover:bg-surface-container-low/60 transition-colors rounded-r-lg"
+        className="sticky -top-5 z-20 flex items-center justify-between cursor-pointer px-4 py-3 select-none bg-surface-container-lowest hover:bg-surface-container-low/60 transition-colors rounded-r-lg border-b border-outline-variant/10"
         onClick={onToggleCollapse}
         role="button"
         aria-expanded={!isCollapsed}
@@ -293,8 +293,8 @@ export function CriterionSection({
       {!isCollapsed && (
         <div className="border-t border-outline-variant/15">
 
-          {/* ── STICKY: overall comment + rubric content ── */}
-          <div className="sticky top-0 z-10 bg-surface-container-lowest px-4 pt-3 pb-2 space-y-3 shadow-[0_2px_6px_-2px_rgba(0,0,0,0.08)]">
+          {/* ── STICKY: overall comment + rubric content — sits below the sticky header ── */}
+          <div className="sticky top-[24px] z-10 bg-surface-container-lowest px-4 pt-3 pb-2 space-y-3 shadow-[0_2px_6px_-2px_rgba(0,0,0,0.08)]">
 
             {/* Reviewer's overall comment */}
             {criterion.overallComment && (
@@ -373,7 +373,8 @@ export function CriterionSection({
                       annotationType: kind === "annotation" ? item.annotationType : undefined,
                       screenshotUrl: kind === "annotation" ? item.screenshotUrl : undefined,
                       pageLocation: kind === "annotation" ? item.pageLocation : undefined,
-                      taurusUrl: kind === "annotation" ? item.taurusUrl : undefined,
+                      torusUrl: kind === "annotation" ? item.torusUrl : undefined,
+                      screenshots: kind === "annotation" ? item.screenshots : undefined,
                     };
 
                     // freeNotes get a scroll-to-general-comments nav icon
