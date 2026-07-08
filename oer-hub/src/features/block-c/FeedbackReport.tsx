@@ -14,21 +14,21 @@ import { getPerRubricReport, getCriterionResponses, getItemResponses, upsertItem
 import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
+import { ReviewSummaryPanel as _ReviewSummaryPanel } from '../../components/ui/ReviewSummaryPanel';
 import { FilterChips } from "./FilterChips";
 import { CriterionSection } from "./CriterionSection";
 import { ReviewerGeneralComments } from "./ReviewerGeneralComments";
 import { OERPreviewPane } from "./OERPreviewPane";
 import { ExportPanel } from "./ExportPanel";
-import { AIChatbox } from "../../components/ai/AIChatbox";
 import { ActionListView } from "./ActionListView";
 
-// ── Inline outcome dots for the compact header row ────────────────────────────
+// ── Rating dot colors & criterion nav ─────────────────────────────────────────
 
-const DOT_COLOR: Record<CriterionRatingSummary, string> = {
-  needs_improvement: "text-amber-500",
-  proficient:        "text-emerald-500",
-  exceeds:           "text-sky-500",
-  mixed:             "text-orange-500",
+const DOT_TITLE: Record<CriterionRatingSummary, string> = {
+  needs_improvement: "Does Not Meet",
+  proficient:        "Exemplifies",
+  exceeds:           "Exceeds",
+  mixed:             "Mixed",
 };
 
 function statusFor(
@@ -44,97 +44,77 @@ function StickyHeader({
   report,
   responses,
   onExportOpen,
-  allNiHandled,
-  isReadOnly,
-  submittedAt,
-  onResetDemo,
   activeView,
   onViewChange,
+  onScrollToCriterion,
 }: {
   report: IPerRubricReport;
   responses: ICriterionResponse[];
   onExportOpen: () => void;
-  allNiHandled: boolean;
-  isReadOnly: boolean;
-  submittedAt: string | null;
-  onResetDemo?: () => void;
   activeView: "report" | "action_list";
   onViewChange: (v: "report" | "action_list") => void;
+  onScrollToCriterion: (criterionId: string) => void;
 }) {
   const criteria = report.criteria;
-  const total = criteria.length;
-  const niCount = criteria.filter((c) => c.ratingSummary === "needs_improvement").length;
-  const exceedsCount = criteria.filter((c) => c.ratingSummary === "exceeds").length;
-  const proficientCount = criteria.filter((c) => c.ratingSummary === "proficient").length;
-  const attentionCount = criteria.filter(
-    (c) =>
-      (c.ratingSummary === "needs_improvement" || c.ratingSummary === "mixed") &&
-      statusFor(c, responses) === "unresolved"
-  ).length;
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: name · dots · summary · CTA · export */}
-      <div className="flex items-center gap-2 min-w-0">
-        <p className="font-semibold text-sm text-primary shrink-0">{report.rubricName} Review</p>
-        <span className="text-outline-variant/60 shrink-0">·</span>
-        <span className="flex items-center gap-px shrink-0">
-          {criteria.map((c) => (
-            <span key={c.criterionId} className={`text-[10px] leading-none ${DOT_COLOR[c.ratingSummary]}`}>
-              ●
-            </span>
-          ))}
-        </span>
-        <span className="text-xs text-on-surface-variant truncate">
-          {proficientCount}/{total} proficient
-          {niCount > 0 && <> · {niCount} NI</>}
-          {exceedsCount > 0 && <> · {exceedsCount} exceed</>}
-        </span>
+      {/* Row 1: rubric name · criteria circles · view toggle · export */}
+      <div className="flex items-center gap-3 min-w-0">
+        <p className="text-base font-semibold text-primary shrink-0">{report.rubricName}</p>
 
-        {isReadOnly ? (
-          <span className="text-xs text-on-surface-variant/60 shrink-0 ml-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">mail</span>
-            Submitted for verification
-            {submittedAt && (
-              <> · {new Date(submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>
-            )}
-          </span>
-        ) : allNiHandled ? (
-          <span className="text-xs text-emerald-600 shrink-0 ml-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[14px]">check_circle</span>
-            All items addressed
-          </span>
-        ) : attentionCount > 0 ? (
-          <span className="text-xs text-amber-600 shrink-0 ml-1">
-            {attentionCount} need attention
-          </span>
-        ) : null}
-
-        <div className="ml-auto shrink-0 flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex items-center rounded-full border border-outline-variant/30 overflow-hidden text-[11px] font-semibold">
-            {(["report", "action_list"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => onViewChange(v)}
-                className={[
-                  "px-2.5 py-0.5 transition-colors",
-                  activeView === v
-                    ? "bg-primary text-white"
-                    : "text-on-surface-variant/60 hover:bg-surface-container",
-                ].join(" ")}
-              >
-                {v === "report" ? "Report" : "Action list"}
-              </button>
-            ))}
-          </div>
-          {import.meta.env.DEV && onResetDemo && (
-            <button onClick={onResetDemo} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-              [Reset demo]
+        {/* Criteria navigation circles */}
+        <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {report.freeNotes.length > 0 && (
+            <button
+              onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              title="Reviewer's General Comments"
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              G
             </button>
           )}
-          <Button size="sm" variant="ghost" icon="download" onClick={onExportOpen}>Export</Button>
+          {criteria.map((c, i) => {
+            const bg =
+              c.ratingSummary === "exceeds"   ? "#1a5c3a" :
+              c.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
+            return (
+              <button
+                key={c.criterionId}
+                onClick={() => onScrollToCriterion(c.criterionId)}
+                title={`${c.criterionId} · ${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
+                style={{ backgroundColor: bg }}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="shrink-0 flex items-center gap-2">
+          {/* View toggle — pill style */}
+          <div className="flex items-center bg-surface-container-high rounded-full p-0.5">
+            {(["report", "action_list"] as const).map((v) => {
+              const label = v === "report" ? "Report" : "Action list";
+              const active = activeView === v;
+              return (
+                <button
+                  key={v}
+                  onClick={() => onViewChange(v)}
+                  className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                    active
+                      ? "bg-primary text-on-primary font-semibold"
+                      : "text-on-surface-variant/60 hover:text-on-surface-variant"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <Button size="sm" variant="secondary" icon="download" onClick={onExportOpen}>Export</Button>
         </div>
       </div>
 
@@ -155,13 +135,7 @@ export default function FeedbackReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [exportPanelOpen, setExportPanelOpen] = useState(false);
-  const [aiButtonPulsing, setAiButtonPulsing] = useState(true);
   const [activeView, setActiveView] = useState<"report" | "action_list">("report");
-
-  useEffect(() => {
-    const t = setTimeout(() => setAiButtonPulsing(false), 3000);
-    return () => clearTimeout(t);
-  }, []);
 
   const {
     setContext,
@@ -178,16 +152,11 @@ export default function FeedbackReport() {
     navigateAnnotation,
     reportScrollPending,
     clearReportScroll,
-    aiChatOpen,
-    toggleAiChat,
-    aiChatWidth,
-    setAiChatWidth,
     setOerPaneWidth,
   } = useRevisionStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const oerDragging = useRef(false);
-  const aiDragging = useRef(false);
 
   const onDragMouseMove = useCallback((e: MouseEvent) => {
     if (!containerRef.current) return;
@@ -196,15 +165,10 @@ export default function FeedbackReport() {
       const pct = ((e.clientX - rect.left) / rect.width) * 100;
       setOerPaneWidth(Math.min(50, Math.max(15, pct)));
     }
-    if (aiDragging.current) {
-      const pct = ((rect.right - e.clientX) / rect.width) * 100;
-      setAiChatWidth(Math.min(40, Math.max(15, pct)));
-    }
-  }, [setOerPaneWidth, setAiChatWidth]);
+  }, [setOerPaneWidth]);
 
   const onDragMouseUp = useCallback(() => {
     oerDragging.current = false;
-    aiDragging.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
   }, []);
@@ -268,19 +232,12 @@ export default function FeedbackReport() {
     return () => clearTimeout(t);
   }, [viewingAnnotationId, reportScrollPending, report, collapsedCriteria, toggleCriterionCollapse, clearReportScroll]);
 
-  // Keyboard shortcut: Cmd/Ctrl + . toggles AI chat
-  useEffect(() => {
-    function handleKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === ".") {
-        const tag = (document.activeElement as HTMLElement)?.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") return;
-        e.preventDefault();
-        handleToggleAiChat();
-      }
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [aiChatOpen, exportPanelOpen]);
+  function handleScrollToCriterion(criterionId: string) {
+    if (collapsedCriteria.includes(criterionId)) toggleCriterionCollapse(criterionId);
+    setTimeout(() => {
+      document.getElementById(`criterion-${criterionId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }
 
   // Keyboard navigation for OER pane
   useEffect(() => {
@@ -336,13 +293,7 @@ export default function FeedbackReport() {
   }
 
   function handleOpenExport() {
-    if (aiChatOpen) toggleAiChat();
     setExportPanelOpen(true);
-  }
-
-  function handleToggleAiChat() {
-    if (exportPanelOpen) setExportPanelOpen(false);
-    toggleAiChat();
   }
 
   function handleResponseSaved(saved: ICriterionResponse) {
@@ -384,22 +335,8 @@ export default function FeedbackReport() {
     );
   }
 
-  // Read submission date if submitted
-  const submittedAt = isReadOnly
-    ? (() => {
-        try {
-          const raw = localStorage.getItem(
-            `oer-hub:block-c:submission:${oerId}:${rubricId}`
-          );
-          return raw ? (JSON.parse(raw) as { submittedAt?: string }).submittedAt ?? null : null;
-        } catch {
-          return null;
-        }
-      })()
-    : null;
-
   const submitUrl = `/reports/${oerId}/${rubricId}/submit`;
-  const effectiveOerWidth = oerPaneOpen && aiChatOpen ? Math.min(oerPaneWidth, 25) : oerPaneWidth;
+  const effectiveOerWidth = oerPaneWidth;
 
   return (
     <div ref={containerRef} className="h-full flex overflow-hidden pt-16">
@@ -449,12 +386,9 @@ export default function FeedbackReport() {
           report={report}
           responses={responses}
           onExportOpen={handleOpenExport}
-          allNiHandled={allNiHandled}
-          isReadOnly={isReadOnly ?? false}
-          submittedAt={submittedAt}
-          onResetDemo={handleResetDemo}
           activeView={activeView}
           onViewChange={setActiveView}
+          onScrollToCriterion={handleScrollToCriterion}
         />
         {activeView === "action_list" ? (
           <ActionListView
@@ -530,37 +464,6 @@ export default function FeedbackReport() {
         )}
       </div>
 
-      {/* AI drag handle */}
-      {aiChatOpen && (
-        <div
-          className="relative group flex-shrink-0 w-1.5 cursor-col-resize select-none z-10"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            aiDragging.current = true;
-            document.body.style.cursor = "col-resize";
-            document.body.style.userSelect = "none";
-          }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-px h-full bg-outline-variant/20 group-hover:bg-secondary/50 transition-colors duration-150" />
-          </div>
-        </div>
-      )}
-
-      {/* Right: AI pane */}
-      {aiChatOpen && (
-        <div
-          className="flex-shrink-0 h-full overflow-hidden"
-          style={{ width: `${aiChatWidth}%`, animation: "slideInRight 200ms ease-out" }}
-        >
-          <AIChatbox
-            report={report}
-            responses={responses}
-            onClose={handleToggleAiChat}
-          />
-        </div>
-      )}
-
       {/* Export panel overlay */}
       {exportPanelOpen && (
         <ExportPanel
@@ -568,17 +471,6 @@ export default function FeedbackReport() {
           responses={responses}
           onClose={() => setExportPanelOpen(false)}
         />
-      )}
-
-      {/* Floating AI trigger button */}
-      {!aiChatOpen && (
-        <button
-          onClick={handleToggleAiChat}
-          title="AI Assistant (⌘.)"
-          className={`fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-gray-800 text-white shadow-lg hover:bg-gray-700 hover:shadow-xl hover:scale-105 transition-all duration-150 flex items-center justify-center print-hidden${aiButtonPulsing ? " animate-pulse" : ""}`}
-        >
-          <span className="material-symbols-outlined text-[22px]">smart_toy</span>
-        </button>
       )}
 
     </div>
