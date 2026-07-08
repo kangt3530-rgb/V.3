@@ -1,37 +1,32 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { type HTMLAttributes } from 'react'
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode;
-  /** Surface tier. Defaults to "lowest" (white, highest perceived lift) */
-  surface?: "lowest" | "low" | "mid" | "high";
-  shadow?: boolean;
+export type CardVariant = 'elevated' | 'outlined'
+
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: CardVariant
+  // legacy compat — ignored visually
+  surface?: string
+  shadow?: boolean
 }
 
-const SURFACE_CLS: Record<string, string> = {
-  lowest: "bg-surface-container-lowest",
-  low:    "bg-surface-container-low",
-  mid:    "bg-surface-container",
-  high:   "bg-surface-container-high",
-};
+function cx(...parts: (string | false | null | undefined)[]) {
+  return parts.filter(Boolean).join(' ')
+}
 
-export function Card({
-  children,
-  surface = "lowest",
-  shadow = true,
-  className = "",
-  ...props
-}: CardProps) {
+export function Card({ variant = 'outlined', className, children, surface: _surface, shadow: _shadow, ...props }: CardProps) {
   return (
     <div
-      {...props}
-      className={[
-        SURFACE_CLS[surface],
-        "rounded-md",
-        shadow ? "shadow-card" : "",
+      className={cx(
+        'rounded-md bg-[var(--color-surface-card)]',
+        variant === 'elevated' && 'shadow-[var(--shadow-2)]',
+        variant === 'outlined' && 'border border-[var(--color-border)]',
         className,
-      ].join(" ")}
+      )}
+      {...props}
     >
       {children}
     </div>
-  );
+  )
 }
+
+export default Card

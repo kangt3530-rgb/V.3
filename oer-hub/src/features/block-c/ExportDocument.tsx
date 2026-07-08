@@ -11,7 +11,6 @@ export interface ExportConfig {
   includeComments: boolean;
   includeAnnotations: boolean;
   includeLogs: boolean;
-  includeCoordinatorQ: boolean;
 }
 
 function fmtDate(iso: string) {
@@ -104,14 +103,6 @@ export function generateMarkdown(
     if (config.includeLogs) {
       lines.push("### Revision Log");
       lines.push(resp?.revisionLog?.trim() || "*(No notes recorded)*");
-      lines.push("");
-    }
-
-    if (config.includeCoordinatorQ && resp?.coordinatorQuestion) {
-      const q = resp.coordinatorQuestion;
-      lines.push("### Question to Coordinator");
-      lines.push(`**Q:** ${q.questionText}`);
-      if (q.reply) lines.push(`**Reply:** ${q.reply}`);
       lines.push("");
     }
 
@@ -275,24 +266,6 @@ export function ExportDocument({ report, config, onClose }: ExportDocumentProps)
                 ) : (
                   <p className="text-sm text-gray-400 italic">No notes recorded</p>
                 )}
-              </div>
-            )}
-
-            {config.includeCoordinatorQ && resp?.coordinatorQuestion && (
-              <div className="my-4">
-                <p className="text-xs tracking-widest uppercase text-gray-400 mb-2">
-                  Question to Coordinator
-                </p>
-                <div className="bg-surface-container-low rounded p-3 text-sm space-y-2">
-                  <p className="text-gray-700">
-                    <span className="font-medium">Q:</span> {resp.coordinatorQuestion.questionText}
-                  </p>
-                  {resp.coordinatorQuestion.reply && (
-                    <p className="text-gray-700">
-                      <span className="font-medium">Reply:</span> {resp.coordinatorQuestion.reply}
-                    </p>
-                  )}
-                </div>
               </div>
             )}
 

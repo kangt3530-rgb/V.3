@@ -114,6 +114,73 @@ body {
   outline: 1px solid rgba(196, 198, 205, 0.15);
 }
 
+/* ── Design system CSS variables (new component layer) ── */
+:root {
+  /* Border */
+  --color-border:          #c4c6cd;
+  --color-border-strong:   #74777d;
+
+  /* Surfaces */
+  --color-surface:                   #f4f1ea;
+  --color-surface-card:              #ffffff;
+  --color-surface-container:         #f1eee7;
+  --color-surface-container-low:     #f6f3ec;
+  --color-surface-container-high:    #ebe8e1;
+
+  /* Text */
+  --color-text-primary:    #1c1c18;
+  --color-text-secondary:  #44474c;
+  --color-text-muted:      rgba(68, 71, 76, 0.6);
+
+  /* Brand */
+  --color-primary:         #041627;
+  --color-primary-hover:   #1a2b3c;
+  --color-on-primary:      #ffffff;
+  --color-secondary:       #735c00;
+  --color-error:           #ba1a1a;
+  --color-error-hover:     #93000a;
+  --color-on-error:        #ffffff;
+
+  /* Ratings */
+  --color-rating-dnm-bg:              #ffdad6;
+  --color-rating-dnm-text:            #93000a;
+  --color-rating-dnm-border:          #ba1a1a;
+  --color-rating-exemplifies-bg:      #f6f3ec;
+  --color-rating-exemplifies-text:    #041627;
+  --color-rating-exemplifies-border:  transparent;
+  --color-rating-exceeds-bg:          #d4f0e4;
+  --color-rating-exceeds-text:        #1a5c3a;
+  --color-rating-exceeds-border:      #2e7d52;
+
+  /* Status badges */
+  --color-status-draft-bg:              #f1eee7;
+  --color-status-draft-text:            #44474c;
+  --color-status-unassigned-bg:         #ebe8e1;
+  --color-status-unassigned-text:       #44474c;
+  --color-status-assigned-bg:           #e8f0fb;
+  --color-status-assigned-text:         #1a3a6b;
+  --color-status-under-review-bg:       #fff3cd;
+  --color-status-under-review-text:     #735c00;
+  --color-status-feedback-ready-bg:     #d4f0e4;
+  --color-status-feedback-ready-text:   #1a5c3a;
+  --color-status-certified-bg:          #d4f0e4;
+  --color-status-certified-text:        #1a5c3a;
+  --color-status-not-started-bg:        #ebe8e1;
+  --color-status-not-started-text:      #44474c;
+  --color-status-in-progress-bg:        #fff3cd;
+  --color-status-in-progress-text:      #735c00;
+  --color-status-completed-bg:          #d4f0e4;
+  --color-status-completed-text:        #1a5c3a;
+
+  /* Shadows */
+  --shadow-1: 0 1px 3px rgba(28, 28, 24, 0.08), 0 1px 2px rgba(28, 28, 24, 0.06);
+  --shadow-2: 0 4px 16px rgba(28, 28, 24, 0.08);
+
+  /* Transitions */
+  --transition-duration-base: 150ms;
+  --transition-duration-fast: 100ms;
+}
+
 /* ── Block C: print-friendly aggregated report ── */
 @media print {
   html,

@@ -3,14 +3,12 @@ import type {
   IAggregatedCriterionFeedback,
   IAuthorItemResponse,
   ICriterionResponse,
-  ICoordinatorQuestion,
   IFreeNote,
 } from "../../api/types";
 import { upsertCriterionResponse } from "../../api";
 import { useRevisionStore } from "../../store/revisionStore";
-import { TAG_CONFIG } from "../block-b/annotationTagConfig";
-import { Button } from "../../components/ui/Button";
-import { RatingPill } from "./RatingPill";
+import { EvidenceCard } from '../../components/ui/EvidenceCard';
+import { StatusBadge } from '../../components/ui/StatusBadge';
 import { RubricDefinitionModal } from "./RubricDefinitionModal";
 import { StatusPillGroup } from "./StatusPillGroup";
 import { CriterionFilterPills } from "./CriterionFilterPills";
@@ -40,10 +38,6 @@ function buildDefaultResponse(
     rubricTemplateId: criterion.rubricTemplateId,
     criterionId: criterion.criterionId,
     revisionLog: draft.revisionLog ?? existing?.revisionLog ?? "",
-    coordinatorQuestion:
-      draft.coordinatorQuestion !== undefined
-        ? draft.coordinatorQuestion
-        : existing?.coordinatorQuestion ?? null,
     status: draft.status ?? existing?.status ?? "unresolved",
     resolvedAt:
       (draft.status ?? existing?.status) === "resolved"
@@ -51,6 +45,12 @@ function buildDefaultResponse(
         : null,
     markResolvedAutoFilled: draft.markResolvedAutoFilled ?? existing?.markResolvedAutoFilled,
   };
+}
+
+function toStatusBadgeVariant(summary: string): 'does_not_meet' | 'exemplifies' | 'exceeds' {
+  if (summary === 'exceeds') return 'exceeds'
+  if (summary === 'proficient') return 'exemplifies'
+  return 'does_not_meet'
 }
 
 // Shared section label style
@@ -72,13 +72,12 @@ export function CriterionSection({
   onItemResponseSaved,
   isReadOnly = false,
 }: CriterionSectionProps) {
-  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId, openAiChat, aiChatCriterionId, aiChatOpen } = useRevisionStore();
+  const { draftResponses, updateDraftResponse, currentOerId, viewingAnnotationId } = useRevisionStore();
   const draft = draftResponses[criterion.criterionId] ?? {};
   const criterionId = criterion.criterionId;
   const oerId = currentOerId ?? response?.oerId ?? "";
 
   const [definitionModalOpen, setDefinitionModalOpen] = useState(false);
-  const [questionInput, setQuestionInput] = useState("");
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [showNudge, setShowNudge] = useState(false);
   const [filterTab, setFilterTab] = useState<"all" | "actionable" | "notes">("all");
@@ -126,30 +125,6 @@ export function CriterionSection({
       setShowNudge(false);
     }
   }
-
-  function handleSendQuestion() {
-    if (!questionInput.trim()) return;
-    const q: ICoordinatorQuestion = {
-      id: `q-${criterionId}-${Date.now()}`,
-      questionText: questionInput.trim(),
-      sentAt: new Date().toISOString(),
-      reply: null,
-      repliedAt: null,
-    };
-    updateDraftResponse(criterionId, { coordinatorQuestion: q, status: "awaiting_clarification" });
-    setQuestionInput("");
-    saveResponse({ coordinatorQuestion: q, status: "awaiting_clarification" });
-  }
-
-  function handleCancelQuestion() {
-    updateDraftResponse(criterionId, { coordinatorQuestion: null, status: "unresolved" });
-    saveResponse({ coordinatorQuestion: null, status: "unresolved" });
-  }
-
-  const coordinatorQuestion =
-    draft.coordinatorQuestion !== undefined
-      ? draft.coordinatorQuestion
-      : response?.coordinatorQuestion ?? null;
 
   const revisionLog = draft.revisionLog ?? response?.revisionLog ?? "";
   const currentStatus = draft.status ?? response?.status ?? "unresolved";
@@ -249,18 +224,14 @@ export function CriterionSection({
           <span className="text-xs font-mono text-on-surface-variant/70 flex-shrink-0 w-7">
             {criterionId}
           </span>
-          <span className="text-xs text-on-surface-variant/40 flex-shrink-0">·</span>
-          <span className="text-xs text-on-surface-variant/50 flex-shrink-0 hidden sm:block truncate max-w-[100px]">
-            {rubricName}
-          </span>
           <span className="text-on-surface-variant/40 flex-shrink-0">—</span>
-          <span className="text-base font-semibold text-primary truncate">
+          <span className="text-sm font-semibold text-primary truncate">
             {criterion.criterionTitle}
           </span>
         </div>
         <div className="flex-shrink-0 ml-3 flex items-center gap-2">
           <CriterionProgressIndicator handled={handledCount} total={unifiedItems.length} />
-          <RatingPill summary={displayRating} />
+          <StatusBadge variant={toStatusBadgeVariant(displayRating)} size="compact" />
         </div>
       </div>
 
@@ -283,16 +254,6 @@ export function CriterionSection({
             </p>
             <div className="flex gap-4 text-xs text-on-surface-variant/60 mt-0.5">
               <button onClick={() => setDefinitionModalOpen(true)} className="hover:text-primary transition-colors">Read full definition</button>
-              <button
-                onClick={() => openAiChat(criterion.criterionId)}
-                className={`hover:text-primary transition-colors ${
-                  aiChatOpen && aiChatCriterionId === criterion.criterionId
-                    ? "text-primary font-medium"
-                    : ""
-                }`}
-              >
-                💬 Ask AI{aiChatOpen && aiChatCriterionId === criterion.criterionId ? " (active)" : ""}
-              </button>
             </div>
           </div>
 
@@ -323,101 +284,79 @@ export function CriterionSection({
               </div>
               <div className="space-y-2">
                 {filteredItems.map(({ kind, item }) => {
-                  const tag = item.tag;
-                  const tagCfg = tag ? TAG_CONFIG[tag] : null;
                   const otherCriteria = kind === "annotation"
                     ? (item.criterionIds ?? []).filter((id) => id !== criterionId)
                     : [];
                   const isViewing = kind === "annotation" && item.id === viewingAnnotationId;
                   const itemStatus = itemResponses.find((r) => r.annotationId === item.id)?.itemStatus ?? null;
+                  const existingResponse = itemResponses.find((r) => r.annotationId === item.id);
+                  const savedNote = existingResponse?.revisionNote ?? "";
+                  const isExpanded = expandedRevNotes.has(item.id) || savedNote.length > 0;
+
+                  const annotation = {
+                    id: item.id,
+                    comment: kind === "annotation" ? item.comment : item.text,
+                    selectedText: kind === "annotation" ? item.anchor?.selectedText : undefined,
+                    tag: item.tag,
+                  };
 
                   return (
                     <div
                       id={kind === "annotation" ? `annotation-${item.id}` : undefined}
                       key={item.id}
-                      className={`rounded-md px-3 py-2 space-y-1.5 transition-colors duration-300 ${
-                        isViewing
-                          ? "bg-amber-50/80 border border-amber-200/60"
-                          : "bg-surface-container/60"
+                      className={`rounded-md transition-colors duration-300 ${
+                        isViewing ? "ring-1 ring-amber-200" : ""
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {tagCfg && (
-                              <>
-                                <span
-                                  className={`material-symbols-outlined text-[14px] flex-shrink-0 ${tagCfg.cls}`}
-                                  style={{ fontVariationSettings: "'FILL' 1" }}
-                                >
-                                  {tagCfg.icon}
-                                </span>
-                                <span className={`text-xs font-semibold flex-shrink-0 ${tagCfg.cls}`}>
-                                  {tagCfg.label}
-                                </span>
-                              </>
-                            )}
-                            {isViewing && (
-                              <span className="ml-auto flex-shrink-0 text-[10px] font-semibold text-sky-600 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded">
-                                VIEWING
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-on-surface leading-relaxed">
-                            {kind === "annotation" ? item.comment : item.text}
-                          </p>
-                          {otherCriteria.length > 0 && (
-                            <p className="text-[10px] text-on-surface-variant/50">
-                              Also under {otherCriteria.join(", ")}
-                            </p>
-                          )}
-                          <button
-                            onClick={() => {
-                              if (kind === "annotation") {
-                                onViewAnnotation(item.id);
-                              } else {
-                                document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                              }
-                            }}
-                            className="text-xs text-secondary hover:underline transition-colors"
-                          >
-                            {kind === "annotation" ? "↗ View annotation" : "↗ View source"}
-                          </button>
-                          {/* Inline revision note */}
-                          {(() => {
-                            const existingResponse = itemResponses.find((r) => r.annotationId === item.id);
-                            const savedNote = existingResponse?.revisionNote ?? "";
-                            const isExpanded = expandedRevNotes.has(item.id) || savedNote.length > 0;
-                            return isExpanded ? (
-                              <textarea
-                                rows={2}
-                                placeholder="Note how you addressed this..."
-                                defaultValue={savedNote}
-                                onChange={(e) => handleRevNoteChange(item.id, e.target.value, existingResponse)}
-                                onBlur={(e) => {
-                                  if (!e.target.value.trim()) {
-                                    setExpandedRevNotes((prev) => {
-                                      const next = new Set(prev);
-                                      next.delete(item.id);
-                                      return next;
-                                    });
-                                  }
-                                }}
-                                autoFocus={!savedNote}
-                                className="mt-1 w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedRevNotes((prev) => new Set(prev).add(item.id))
+                      <EvidenceCard
+                        annotation={annotation}
+                        onGoToAnnotation={kind === "annotation" ? () => onViewAnnotation(item.id) : undefined}
+                      />
+                      {otherCriteria.length > 0 && (
+                        <p className="text-[10px] text-on-surface-variant/50 px-3 pt-1">
+                          Also under {otherCriteria.join(", ")}
+                        </p>
+                      )}
+                      {kind === "freeNote" && (
+                        <button
+                          onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                          className="text-xs text-secondary hover:underline transition-colors px-3 pt-1 block"
+                        >
+                          ↗ View source
+                        </button>
+                      )}
+                      {/* Inline revision note + status pill */}
+                      <div className="px-3 pb-2 pt-1 flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          {isExpanded ? (
+                            <textarea
+                              rows={2}
+                              placeholder="Note how you addressed this..."
+                              defaultValue={savedNote}
+                              onChange={(e) => handleRevNoteChange(item.id, e.target.value, existingResponse)}
+                              onBlur={(e) => {
+                                if (!e.target.value.trim()) {
+                                  setExpandedRevNotes((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(item.id);
+                                    return next;
+                                  });
                                 }
-                                className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
-                              >
-                                + Add revision note
-                              </button>
-                            );
-                          })()}
+                              }}
+                              autoFocus={!savedNote}
+                              className="w-full rounded border border-outline-variant/40 bg-white px-2 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/40 focus:border-secondary focus:outline-none resize-none"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedRevNotes((prev) => new Set(prev).add(item.id))
+                              }
+                              className="text-xs text-on-surface-variant/40 hover:text-secondary transition-colors"
+                            >
+                              + Add revision note
+                            </button>
+                          )}
                         </div>
                         <div className="flex-shrink-0">
                           <StatusPillGroup
@@ -476,89 +415,7 @@ export function CriterionSection({
             </div>
           )}
 
-          {/* Block 5: Ask coordinator (hidden in read-only unless a question exists) */}
-          {showAuthorBlocks && !isProficient && (!isReadOnly || coordinatorQuestion) && (
-            <div className="space-y-1.5">
-              <p className={SECTION_LABEL}>Ask Coordinator</p>
-
-              {!coordinatorQuestion && (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Optional question routed to your lead..."
-                    value={questionInput}
-                    onChange={(e) => setQuestionInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleSendQuestion(); }}
-                    className={AUTHOR_INPUT}
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={handleSendQuestion}
-                    disabled={!questionInput.trim()}
-                  >
-                    Send
-                  </Button>
-                </div>
-              )}
-
-              {coordinatorQuestion && !coordinatorQuestion.reply && (
-                <div className="bg-surface-container-low rounded-md p-2.5 space-y-1">
-                  <p className="text-sm text-on-surface">{coordinatorQuestion.questionText}</p>
-                  <p className="text-xs text-on-surface-variant/60">
-                    Sent {new Date(coordinatorQuestion.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · Awaiting reply
-                  </p>
-                  <button
-                    className="text-xs text-secondary hover:underline transition-colors"
-                    onClick={handleCancelQuestion}
-                  >
-                    Cancel question
-                  </button>
-                </div>
-              )}
-
-              {coordinatorQuestion?.reply && (
-                <div className="space-y-2">
-                  <div className="bg-surface-container-low rounded-md p-2.5 space-y-0.5">
-                    <p className="text-xs text-on-surface-variant/60">Your question</p>
-                    <p className="text-sm text-on-surface">{coordinatorQuestion.questionText}</p>
-                    <p className="text-xs text-on-surface-variant/60">
-                      {new Date(coordinatorQuestion.sentAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                  </div>
-                  <div className="bg-amber-50/70 rounded-md p-2.5 space-y-0.5">
-                    <p className="text-xs text-on-surface-variant/60">Coordinator reply</p>
-                    <p className="text-sm text-on-surface">{coordinatorQuestion.reply}</p>
-                    {coordinatorQuestion.repliedAt && (
-                      <p className="text-xs text-on-surface-variant/60">
-                        {new Date(coordinatorQuestion.repliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Follow-up question..."
-                      value={questionInput}
-                      onChange={(e) => setQuestionInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleSendQuestion(); }}
-                      className={AUTHOR_INPUT}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={handleSendQuestion}
-                      disabled={!questionInput.trim()}
-                    >
-                      Send
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Block 6: Mark resolved (NI and Mixed only) */}
+          {/* Block 5: Mark resolved (NI and Mixed only) */}
           {isNI && (
             <div className="pt-3 border-t border-outline-variant/15 space-y-2">
               <div className="flex justify-end items-center gap-3">

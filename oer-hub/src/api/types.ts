@@ -1,6 +1,3 @@
-import type { ChatMessage, ActiveNudge } from "./ai";
-export type { ChatMessage, ActiveNudge };
-
 // ─── Domain types ────────────────────────────────────────────────────────────
 
 export type UserRole = "author" | "reviewer" | "coordinator";
@@ -122,9 +119,9 @@ export interface IReviewSession {
   oerScrollY: number;
   lastSaved: string;
   status: "draft" | "submitted";
-  chatHistory: ChatMessage[];
+  chatHistory: unknown[];
   aiPaneOpen: boolean;
-  activeNudges: ActiveNudge[];
+  activeNudges: unknown[];
 }
 
 export interface IRubricCriterion {
@@ -236,20 +233,11 @@ export interface IAuthorItemResponse {
   revisionNote?: string;
 }
 
-export interface ICoordinatorQuestion {
-  id: string;
-  questionText: string;
-  sentAt: string;
-  reply: string | null;
-  repliedAt: string | null;
-}
-
 export interface ICriterionResponse {
   oerId: string;
   rubricTemplateId: RubricTemplateId;
   criterionId: string;
   revisionLog: string;
-  coordinatorQuestion: ICoordinatorQuestion | null;
   status: RevisionStatus;
   resolvedAt: string | null;
   markResolvedAutoFilled?: boolean;

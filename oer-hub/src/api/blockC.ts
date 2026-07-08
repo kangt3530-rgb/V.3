@@ -21,7 +21,6 @@ import type {
   IAuthorItemResponse,
 } from "./types";
 import { MOCK_OERS } from "./mock/oers";
-import { MOCK_ACTIVE_TASKS, MOCK_POOL_TASKS } from "./mock/tasks";
 import { isStaleV36Session, loadSession } from "./sessionStorage";
 
 const LS_OER_STATUS = "oer-hub:mock:oer-status-overrides";
@@ -71,12 +70,8 @@ export function getOerById(oerId: string): IOer | null {
   return getMergedOers().find((o) => o.id === oerId) ?? null;
 }
 
-function allTasks() {
-  return [...MOCK_ACTIVE_TASKS, ...MOCK_POOL_TASKS];
-}
-
-export function getTasksForOer(oerId: string) {
-  return allTasks().filter((t) => t.oerId === oerId);
+export function getTasksForOer(_oerId: string) {
+  return [];
 }
 
 // ── Mediation queue ───────────────────────────────────────────────────────────
@@ -630,14 +625,7 @@ export async function getPerRubricReport(
     };
   }
 
-  // Find the completed task for this specific rubric
-  const task = allTasks().find(
-    (t) =>
-      t.oerId === oerId &&
-      t.rubricTemplateId === rubricTemplateId &&
-      t.status === "completed"
-  );
-  const taskId = task?.id ?? (oerId === "oer-001" ? "task-001" : null);
+  const taskId = oerId === "oer-001" ? "task-001" : null;
   if (!taskId) return null;
 
   let session = loadSession(taskId);
@@ -678,7 +666,7 @@ export async function getPerRubricReport(
     oer,
     rubricTemplateId,
     rubricName: rubric.name,
-    reviewCompletedAt: task?.submittedAt ?? session.lastSaved,
+    reviewCompletedAt: session.lastSaved,
     releasedToAuthor: true,
     criteria,
     freeNotes: session.freeNotes ?? [],

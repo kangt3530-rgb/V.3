@@ -76,6 +76,7 @@ export default {
         "tinted-info":     "#fef5de",
       },
       fontFamily: {
+        "heading": ["Newsreader", "Georgia", "serif"],
         "headline":   ["Newsreader", "Georgia", "serif"],
         "body":       ["Inter", "system-ui", "sans-serif"],
         "label":      ["Inter", "system-ui", "sans-serif"],
@@ -95,6 +96,8 @@ export default {
         ambient: "0 12px 40px rgba(28, 28, 24, 0.06)",
         card:    "0 4px 16px rgba(28, 28, 24, 0.04)",
         panel:   "0 2px 8px rgba(28, 28, 24, 0.05)",
+        "1": "0 1px 3px rgba(28, 28, 24, 0.08), 0 1px 2px rgba(28, 28, 24, 0.06)",
+        "2": "0 4px 16px rgba(28, 28, 24, 0.08)",
       },
       fontSize: {
         "display-lg":  ["3.5rem",   { lineHeight: "1.15", letterSpacing: "-0.02em" }],
@@ -111,6 +114,9 @@ export default {
         "label-lg":    ["0.875rem", { lineHeight: "1.4",  letterSpacing: "0.1em" }],
         "label-md":    ["0.75rem",  { lineHeight: "1.3",  letterSpacing: "0.1em" }],
         "label-sm":    ["0.6875rem",{ lineHeight: "1.3",  letterSpacing: "0.12em" }],
+        "heading-lg": ["1.75rem",  { lineHeight: "1.35", letterSpacing: "-0.01em" }],
+        "heading-md": ["1.5rem",   { lineHeight: "1.4" }],
+        "heading-sm": ["1.25rem",  { lineHeight: "1.45" }],
       },
     },
   },
