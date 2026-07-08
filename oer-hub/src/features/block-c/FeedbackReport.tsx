@@ -11,7 +11,6 @@ import type {
   CriterionRatingSummary,
 } from "../../api/types";
 import { getPerRubricReport, getCriterionResponses, getItemResponses, upsertItemResponse } from "../../api";
-import { clearOerStatusOverride } from "../../api/blockC";
 import { useRevisionStore } from "../../store/revisionStore";
 import { Button } from "../../components/ui/Button";
 import { ReviewSummaryPanel as _ReviewSummaryPanel } from '../../components/ui/ReviewSummaryPanel';
@@ -31,25 +30,61 @@ const DOT_TITLE: Record<CriterionRatingSummary, string> = {
   mixed:             "Mixed",
 };
 
-function statusFor(
-  c: IAggregatedCriterionFeedback,
-  responses: ICriterionResponse[]
-): RevisionStatus {
-  return responses.find((r) => r.criterionId === c.criterionId)?.status ?? "unresolved";
+// ── Criterion dot with hover tooltip ──────────────────────────────────────────
+
+function CriterionDot({
+  criterion,
+  index,
+  onClick,
+}: {
+  criterion: IAggregatedCriterionFeedback;
+  index: number;
+  onClick: () => void;
+}) {
+  const bg =
+    criterion.ratingSummary === "exceeds"   ? "#1a5c3a" :
+    criterion.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
+  const ratingLabel = DOT_TITLE[criterion.ratingSummary];
+
+  return (
+    <div className="relative group/dot">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 transition-all duration-150 group-hover/dot:scale-125"
+        style={{ backgroundColor: bg }}
+      >
+        {index + 1}
+      </button>
+      {/* Tooltip — appears below to avoid overflow-x-auto clipping */}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-50 pointer-events-none">
+        {/* Arrow */}
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0"
+          style={{
+            borderLeft: "5px solid transparent",
+            borderRight: "5px solid transparent",
+            borderBottom: "5px solid #171717",
+          }}
+        />
+        <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap text-left">
+          <p className="text-[11px] font-semibold">{criterion.criterionId} · {criterion.criterionTitle} — {ratingLabel}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Sticky header ─────────────────────────────────────────────────────────────
 
 function StickyHeader({
   report,
-  responses,
   onExportOpen,
   activeView,
   onViewChange,
   onScrollToCriterion,
 }: {
   report: IPerRubricReport;
-  responses: ICriterionResponse[];
   onExportOpen: () => void;
   activeView: "report" | "action_list";
   onViewChange: (v: "report" | "action_list") => void;
@@ -59,42 +94,12 @@ function StickyHeader({
 
   return (
     <div className="flex-shrink-0 bg-surface border-b border-outline-variant/20 px-5 py-2 space-y-1.5">
-      {/* Row 1: rubric name · criteria circles · view toggle · export */}
+      {/* Row 1: rubric name · spacer · view toggle · export (no dots here) */}
       <div className="flex items-center gap-3 min-w-0">
         <p className="text-base font-semibold text-primary shrink-0">{report.rubricName}</p>
-
-        {/* Criteria navigation circles */}
-        <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {report.freeNotes.length > 0 && (
-            <button
-              onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              title="Reviewer's General Comments"
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: "var(--color-primary)" }}
-            >
-              G
-            </button>
-          )}
-          {criteria.map((c, i) => {
-            const bg =
-              c.ratingSummary === "exceeds"   ? "#1a5c3a" :
-              c.ratingSummary === "proficient" ? "#735c00" : "#ba1a1a";
-            return (
-              <button
-                key={c.criterionId}
-                onClick={() => onScrollToCriterion(c.criterionId)}
-                title={`${c.criterionId} · ${c.criterionTitle} — ${DOT_TITLE[c.ratingSummary]}`}
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 hover:opacity-80 transition-opacity"
-                style={{ backgroundColor: bg }}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-        </div>
-
+        <div className="flex-1" />
         <div className="shrink-0 flex items-center gap-2">
-          {/* View toggle — pill style */}
+          {/* View toggle */}
           <div className="flex items-center bg-surface-container-high rounded-full p-0.5">
             {(["report", "action_list"] as const).map((v) => {
               const label = v === "report" ? "Report" : "Action list";
@@ -118,8 +123,35 @@ function StickyHeader({
         </div>
       </div>
 
-      {/* Row 2: filter chips */}
-      <FilterChips criteria={criteria} responses={responses} />
+      {/* Row 2: criterion dots (both views) */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {report.freeNotes.filter(n => (n.criterionIds ?? []).length === 0).length > 0 && (
+          <div className="relative group/dot">
+            <button
+              type="button"
+              onClick={() => document.getElementById("reviewer-general-comments")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 transition-all duration-150 group-hover/dot:scale-125"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              G
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover/dot:block z-50 pointer-events-none">
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-b-[5px] border-b-neutral-900" />
+              <div className="rounded-md px-2.5 py-1.5 bg-neutral-900 text-white shadow-lg whitespace-nowrap">
+                <p className="text-[11px] font-semibold">General Comments</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {criteria.map((c, i) => (
+          <CriterionDot
+            key={c.criterionId}
+            criterion={c}
+            index={i}
+            onClick={() => onScrollToCriterion(c.criterionId)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -153,6 +185,7 @@ export default function FeedbackReport() {
     reportScrollPending,
     clearReportScroll,
     setOerPaneWidth,
+    setLastSaved,
   } = useRevisionStore();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -281,17 +314,6 @@ export default function FeedbackReport() {
     });
   }, [report, responses, activeRatingFilters, activeStatusFilters]);
 
-  function handleResetDemo() {
-    if (!oerId || !rubricId) return;
-    localStorage.removeItem(`oer-hub:block-c:responses:${oerId}:${rubricId}`);
-    localStorage.removeItem(`oer-hub:block-c:submission:${oerId}:${rubricId}`);
-    localStorage.removeItem("oer-hub:block-c:revision-store");
-    // Also clear the reviewer session so the new demo seed data is used on reload
-    localStorage.removeItem("oer-hub:session:v3:task-001");
-    clearOerStatusOverride(oerId);
-    window.location.reload();
-  }
-
   function handleOpenExport() {
     setExportPanelOpen(true);
   }
@@ -301,6 +323,7 @@ export default function FeedbackReport() {
       const idx = prev.findIndex((r) => r.criterionId === saved.criterionId);
       return idx >= 0 ? prev.map((r, i) => (i === idx ? saved : r)) : [...prev, saved];
     });
+    setLastSaved(new Date().toISOString());
   }
 
   function handleItemResponseSaved(saved: IAuthorItemResponse) {
@@ -309,6 +332,7 @@ export default function FeedbackReport() {
       const idx = prev.findIndex((r) => r.annotationId === saved.annotationId);
       return idx >= 0 ? prev.map((r, i) => (i === idx ? saved : r)) : [...prev, saved];
     });
+    setLastSaved(new Date().toISOString());
   }
 
   if (loading) {
@@ -384,7 +408,6 @@ export default function FeedbackReport() {
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <StickyHeader
           report={report}
-          responses={responses}
           onExportOpen={handleOpenExport}
           activeView={activeView}
           onViewChange={setActiveView}
@@ -406,6 +429,8 @@ export default function FeedbackReport() {
         ) : (
         <div className="flex-1 overflow-y-auto px-5 py-5">
           <div className="max-w-5xl mx-auto space-y-4">
+            {/* Filter chips — between header and General Comments */}
+            <FilterChips criteria={report.criteria} responses={responses} />
             <ReviewerGeneralComments
               freeNotes={report.freeNotes}
               oerId={report.oer.id}

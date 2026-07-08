@@ -114,9 +114,20 @@ export function RubricDefinitionModal({
                         .map((para) => para.trim())
                         .filter((para) => para.length > 0)
                         .slice(0, 8)
-                        .map((para, i) => (
-                          <p key={i}>{para.replace(/\*\*/g, "")}</p>
-                        ))}
+                        .map((para, i) => {
+                          const linkMatch = para.match(/^\[(\*\*)?(.+?)(\*\*)?\]\((.+?)\)$/);
+                          if (linkMatch) {
+                            return (
+                              <p key={i}>
+                                <a href={linkMatch[4]} target="_blank" rel="noopener noreferrer"
+                                  className="font-semibold text-primary underline underline-offset-2 hover:opacity-70 transition-opacity">
+                                  {linkMatch[2]}
+                                </a>
+                              </p>
+                            );
+                          }
+                          return <p key={i}>{para.replace(/\*\*/g, "").replace(/\*/g, "")}</p>;
+                        })}
                     </div>
                   )}
                 </div>

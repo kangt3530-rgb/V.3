@@ -36,6 +36,10 @@ interface RevisionStoreState {
   generalCommentsCollapsed: boolean;
   toggleGeneralComments: () => void;
 
+  // Last saved timestamp (ISO string or null)
+  lastSaved: string | null;
+  setLastSaved: (iso: string) => void;
+
   // Actions
   setContext: (oerId: string, rubricId: RubricTemplateId) => void;
   toggleRatingFilter: (rating: CriterionRatingSummary) => void;
@@ -72,6 +76,9 @@ export const useRevisionStore = create<RevisionStoreState>()(
       reportScrollPending: false,
       draftResponses: {},
       generalCommentsCollapsed: false,
+      lastSaved: null,
+
+      setLastSaved: (iso) => set({ lastSaved: iso }),
 
       setContext: (oerId, rubricId) => {
         const { currentOerId, currentRubricId } = get();

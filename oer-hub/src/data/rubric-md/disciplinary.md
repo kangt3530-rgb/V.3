@@ -1,6 +1,5 @@
   
-**Open 4 Peer Review Project**  
-**Disciplinary Appropriateness Rubric**
+[**Open 4 Peer Review Project Disciplinary Appropriateness Rubric**](https://docs.google.com/document/d/1qTwKhJ6t9WDXraYw6sD1rjhaYVa47WVLntYxl6moeUo/edit?tab=t.0)
 
 The *Open 4 Peer Review* Project aims to increase faculty adoption and adaptation of Open Educational Resources (OER) by developing and applying standards and rubrics to course materials for high-enrollment courses. A barrier to faculty use of OER is the lack of qualitative indicators that can support robust peer review. A barrier to faculty use of OER is the lack of qualitative indicators that can support robust peer review. A consortium of colleges and universities worked to address this barrier by (1) adapting existing, and creating new, openly licensed standards of quality for OER, (2) developing corresponding rubrics for applying those standards in a peer review process.
 
