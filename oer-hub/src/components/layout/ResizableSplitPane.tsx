@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useReviewStore } from "../../store/reviewStore";
 
 interface ResizableSplitPaneProps {
   left:  ReactNode;
@@ -8,7 +9,8 @@ interface ResizableSplitPaneProps {
 const HANDLE_WIDTH = 6; // px
 
 export function ResizableSplitPane({ left, right }: ResizableSplitPaneProps) {
-  const [splitRatio, setSplitRatio] = useState(0.5);
+  const splitRatio    = useReviewStore((s) => s.splitRatio);
+  const setSplitRatio = useReviewStore((s) => s.setSplitRatio);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging     = useRef(false);
@@ -18,9 +20,9 @@ export function ResizableSplitPane({ left, right }: ResizableSplitPaneProps) {
       if (!dragging.current || !containerRef.current) return;
       const rect  = containerRef.current.getBoundingClientRect();
       const ratio = (e.clientX - rect.left) / rect.width;
-      setSplitRatio(Math.min(0.85, Math.max(0.15, ratio)));
+      setSplitRatio(ratio);
     },
-    []
+    [setSplitRatio]
   );
 
   const onMouseUp = useCallback(() => {
@@ -42,7 +44,13 @@ export function ResizableSplitPane({ left, right }: ResizableSplitPaneProps) {
   const rightPercent = 100 - leftPercent;
 
   return (
+    // position:relative so LayoutPresets can be absolutely positioned inside
     <div ref={containerRef} className="relative h-full overflow-hidden">
+      {/*
+        3-column grid: left content | 6px drag handle | right content.
+        LayoutPresets is NOT a grid child — it's absolute-positioned above.
+        transition on grid-template-columns animates the adaptive layout change.
+      */}
       <div
         className="h-full"
         style={{
@@ -51,13 +59,24 @@ export function ResizableSplitPane({ left, right }: ResizableSplitPaneProps) {
           transition: "grid-template-columns 300ms cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
+        {/* Column 1 — OER content pane */}
         <div className="overflow-hidden min-w-0">{left}</div>
 
+        {/* Column 2 — Drag handle (6px) */}
         <div className="relative group cursor-col-resize select-none z-10">
+          {/* Thin separator line */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-px h-full bg-outline-variant/20 group-hover:bg-secondary/50 transition-colors duration-150" />
           </div>
-          <div className="absolute inset-0"
+          {/* Grab pills */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="w-1 h-1 rounded-full bg-outline-variant" />
+            ))}
+          </div>
+          {/* Full-height invisible hit area */}
+          <div
+            className="absolute inset-0"
             onMouseDown={(e) => {
               e.preventDefault();
               dragging.current = true;
@@ -67,9 +86,11 @@ export function ResizableSplitPane({ left, right }: ResizableSplitPaneProps) {
           />
         </div>
 
+        {/* Column 3 — Rubric console pane */}
         <div className="overflow-hidden min-w-0">{right}</div>
       </div>
 
+      {/* Layout preset buttons — absolutely positioned, NOT a grid child */}
       <LayoutPresets splitRatio={splitRatio} setSplitRatio={setSplitRatio} />
     </div>
   );

@@ -1,6 +1,6 @@
 import { type ButtonHTMLAttributes, type ReactNode, cloneElement, isValidElement, Children } from 'react'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'toggle' | 'icon' | 'text' | 'destructive'
+export type ButtonVariant = 'primary' | 'secondary' | 'toggle' | 'icon' | 'text' | 'ghost' | 'destructive'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -85,18 +85,23 @@ export function Button({
       'hover:text-[var(--color-text-primary)] hover:underline',
       'disabled:opacity-40 disabled:cursor-not-allowed',
     ),
+    variant === 'ghost' && cx(
+      'rounded-md bg-transparent text-[var(--color-text-secondary)]',
+      'hover:bg-[var(--color-surface-container)] hover:text-[var(--color-text-primary)]',
+      'disabled:opacity-40 disabled:cursor-not-allowed',
+    ),
     size === 'sm' && (variant === 'primary' || variant === 'destructive' || variant === 'secondary') && 'px-3 py-1.5 text-xs',
     size === 'sm' && variant === 'toggle' && 'px-3 py-2 text-xs',
     size === 'sm' && variant === 'icon'   && 'p-1',
-    size === 'sm' && variant === 'text'   && 'text-xs',
+    size === 'sm' && (variant === 'text' || variant === 'ghost') && 'px-3 py-1.5 text-xs',
     size === 'md' && (variant === 'primary' || variant === 'destructive' || variant === 'secondary') && 'px-3.5 py-2 text-sm',
     size === 'md' && variant === 'toggle' && 'px-4 py-3 text-sm',
     size === 'md' && variant === 'icon'   && 'p-1.5',
-    size === 'md' && variant === 'text'   && 'text-sm',
+    size === 'md' && (variant === 'text' || variant === 'ghost') && 'px-3.5 py-2 text-sm',
     size === 'lg' && (variant === 'primary' || variant === 'destructive' || variant === 'secondary') && 'px-5 py-2.5 text-sm',
     size === 'lg' && variant === 'toggle' && 'px-5 py-3.5 text-sm',
     size === 'lg' && variant === 'icon'   && 'p-2',
-    size === 'lg' && variant === 'text'   && 'text-base',
+    size === 'lg' && (variant === 'text' || variant === 'ghost') && 'px-5 py-2.5 text-base',
     fullWidth && 'w-full',
     shape === 'square' && 'rounded-none',
     className,

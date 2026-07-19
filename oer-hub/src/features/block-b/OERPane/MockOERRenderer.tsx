@@ -5,7 +5,10 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import type { IAnnotation, IRubricTemplate } from "../../../api/types";
+import { useReviewStore } from "../../../store/reviewStore";
 import { TAG_CONFIG } from "../annotationTagConfig";
+import { AnnotationPopover } from "./AnnotationPopover";
+import { OERMetadataSummary } from "../RubricPane/OERMetadataSummary";
 
 interface MockOERRendererProps {
   annotations:        IAnnotation[];
@@ -211,6 +214,7 @@ export function MockOERRenderer({
         <div ref={contentRef} className="relative max-w-2xl mx-auto px-8 pt-10 pb-24">
 
           {/* ── OER metadata snapshot ─────────────────────────────────────── */}
+          <OERMetadataSummary />
 
           {/* ── OER book content ─────────────────────────────────────────── */}
           <OERContent />
@@ -273,7 +277,22 @@ export function MockOERRenderer({
         />
       )}
 
-      {/* Annotation creation popover — not available in read-only mode */}
+      {/* ── Annotation creation popover ──────────────────────────────────── */}
+      {pending && (
+        <div id="oer-annotation-popover">
+          <AnnotationPopover
+            containerRef={outerRef}
+            selectedText={pending.selectedText}
+            rects={pending.rects}
+            anchorType="web"
+            popoverX={pending.viewX}
+            popoverY={pending.viewY}
+            rubricTemplate={rubricTemplate}
+            onSave={() => setPending(null)}
+            onCancel={() => setPending(null)}
+          />
+        </div>
+      )}
 
       {/* ── Hover tooltip (read-only preview, hidden when toolbar active) ─── */}
       {hovered && !selection && !pending && !activeToolbar && (
@@ -305,7 +324,23 @@ export function MockOERRenderer({
         />
       )}
 
-      {/* Edit annotation popover — not available in read-only mode */}
+      {/* ── Edit annotation popover ───────────────────────────────────────── */}
+      {editingAnnotation && (
+        <div id="oer-annotation-popover">
+          <AnnotationPopover
+            containerRef={outerRef}
+            selectedText={editingAnnotation.anchor.selectedText}
+            rects={editingAnnotation.anchor.rects}
+            anchorType={editingAnnotation.anchor.type}
+            popoverX={editingAnnotation.anchor.rects[0]?.left ?? 0}
+            popoverY={editingAnnotation.anchor.rects[0]?.top ?? 0}
+            rubricTemplate={rubricTemplate}
+            editAnnotation={editingAnnotation}
+            onSave={() => setEditingAnnotation(null)}
+            onCancel={() => setEditingAnnotation(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -382,6 +417,7 @@ function AnnotationActionToolbar({
   onEdit:          () => void;
   onDelete:        () => void;
 }) {
+  const removeAnnotation = useReviewStore((s) => s.removeAnnotation);
 
   const TOOLBAR_W = 320;
   const TOOLBAR_H = 80;
@@ -436,7 +472,7 @@ function AnnotationActionToolbar({
         </button>
         <button
           type="button"
-          onClick={() => { onDelete(); }}
+          onClick={() => { removeAnnotation(annotation.id); onDelete(); }}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm border border-error/30 text-error/70 hover:border-error hover:text-error transition-colors text-label-sm font-label font-semibold uppercase tracking-widest"
         >
           <span className="material-symbols-outlined text-[13px]">delete</span>

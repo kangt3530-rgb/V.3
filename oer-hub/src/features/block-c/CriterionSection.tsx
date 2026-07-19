@@ -177,6 +177,7 @@ export function CriterionSection({
       rubricTemplateId: criterion.rubricTemplateId,
       criterionId: criterion.criterionId,
       revisionLog: draft.revisionLog ?? response?.revisionLog ?? "",
+      coordinatorQuestion: draft.coordinatorQuestion ?? response?.coordinatorQuestion ?? null,
       status: draft.status ?? response?.status ?? "unresolved",
       resolvedAt:
         (draft.status ?? response?.status) === "resolved"
